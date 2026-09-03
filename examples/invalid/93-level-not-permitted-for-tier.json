@@ -1,0 +1,74 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-ny-conedison:2026-0921-bad-03",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-20T14:05:00Z",
+  "effective_start": "2026-09-21T06:00:00Z",
+  "requestor": {
+    "agency_name": "Consolidated Edison, Manhattan Distribution",
+    "agency_type": "UTILITY",
+    "authority_id": "urn:gfn:authority:us-ny-conedison",
+    "jurisdiction": {
+      "name": "New York County, NY",
+      "same_code": "036061"
+    },
+    "incident_number": "CE-2026-0921-BAD",
+    "contact": {
+      "hotline": "+12125550166",
+      "role": "Distribution Operations Supervisor"
+    }
+  },
+  "reason": {
+    "code": "UTILITY_OUTAGE",
+    "severity": "MEDIUM",
+    "public_text": "Feeder work in progress."
+  },
+  "restriction": {
+    "level": "PROHIBITED",
+    "applies_to": [
+      "ALL_AUTOMATED"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "feeder",
+      "area_desc": "Amsterdam Ave from W 96th St to W 100th St.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9689,
+              40.7976
+            ],
+            [
+              -73.9662,
+              40.7976
+            ],
+            [
+              -73.9662,
+              40.7939
+            ],
+            [
+              -73.9689,
+              40.7939
+            ],
+            [
+              -73.9689,
+              40.7976
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiJ9",
+    "signature": "PLACEHOLDER"
+  },
+  "effective_end": "2026-09-21T14:00:00Z"
+}

@@ -1,0 +1,74 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-ca-sf-fire:2026-0912-bad-02",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-12T04:47:11Z",
+  "effective_start": "2026-09-12T04:47:11Z",
+  "requestor": {
+    "agency_name": "San Francisco Fire Department",
+    "agency_type": "FIRE_EMS",
+    "authority_id": "urn:gfn:authority:us-ca-sf-fire",
+    "jurisdiction": {
+      "name": "San Francisco, CA",
+      "same_code": "006075"
+    },
+    "incident_number": "F26-0912-BAD2",
+    "contact": {
+      "hotline": "+14155550142",
+      "role": "Incident Commander"
+    }
+  },
+  "reason": {
+    "code": "FIRE",
+    "severity": "CRITICAL",
+    "public_text": "Structure fire."
+  },
+  "restriction": {
+    "level": "PROHIBITED",
+    "applies_to": [
+      "ADS_DRIVERLESS"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "z1",
+      "area_desc": "Valencia St between 18th St and 20th St.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              37.7615,
+              -122.4221
+            ],
+            [
+              37.7615,
+              -122.4189
+            ],
+            [
+              37.7592,
+              -122.4189
+            ],
+            [
+              37.7592,
+              -122.4221
+            ],
+            [
+              37.7615,
+              -122.4221
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiJ9",
+    "signature": "PLACEHOLDER"
+  },
+  "effective_end": "2026-09-12T06:47:11Z"
+}

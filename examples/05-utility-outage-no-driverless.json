@@ -1,0 +1,91 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-ny-conedison:2026-0921-mn-4471",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-20T14:05:00Z",
+  "priority": 3,
+  "scope": "PUBLIC",
+  "channels": [
+    "DIRECT_API"
+  ],
+  "ack_required": false,
+  "effective_start": "2026-09-21T06:00:00Z",
+  "extendable": true,
+  "freshness_window": "PT1H",
+  "requestor": {
+    "agency_name": "Consolidated Edison, Manhattan Distribution",
+    "agency_type": "UTILITY",
+    "authority_id": "urn:gfn:authority:us-ny-conedison",
+    "jurisdiction": {
+      "name": "New York County, NY",
+      "same_code": "036061"
+    },
+    "incident_number": "CE-2026-0921-4471",
+    "contact": {
+      "hotline": "+12125550166",
+      "role": "Distribution Operations Supervisor",
+      "email": "distribution-ops@example-coned.com"
+    }
+  },
+  "reason": {
+    "code": "SIGNAL_OUTAGE",
+    "severity": "MEDIUM",
+    "public_text": "Planned feeder work. Traffic signals dark at four intersections; officers directing traffic.",
+    "hazard_notes": "Signals dark, treat every affected intersection as an all-way stop. Officers hand-directing traffic may override normal right of way. Cable reels and a bucket truck occupy the curb lane."
+  },
+  "restriction": {
+    "level": "NO_DRIVERLESS",
+    "applies_to": [
+      "ADS_DRIVERLESS",
+      "ADS_TRUCK"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "feeder-4471",
+      "area_desc": "Amsterdam Ave from W 96th St to W 100th St, including the intersections at 96th, 97th, 99th and 100th.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -73.9689,
+              40.7976
+            ],
+            [
+              -73.9662,
+              40.7976
+            ],
+            [
+              -73.9662,
+              40.7939
+            ],
+            [
+              -73.9689,
+              40.7939
+            ],
+            [
+              -73.9689,
+              40.7976
+            ]
+          ]
+        ]
+      },
+      "road_refs": [
+        {
+          "system": "OSM",
+          "id": "way/5591027"
+        }
+      ]
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLW55LWNvbmVkaXNvbi0yMDI2LTAxIn0",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  },
+  "effective_end": "2026-09-22T08:00:00Z"
+}

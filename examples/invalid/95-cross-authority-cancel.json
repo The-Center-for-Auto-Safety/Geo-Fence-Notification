@@ -1,0 +1,103 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-ca-sf-fire:2026-0912-0447",
+  "sequence": 2,
+  "msg_type": "CANCEL",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-12T04:47:11Z",
+  "priority": 0,
+  "scope": "PUBLIC",
+  "channels": [
+    "DIRECT_API",
+    "IPAWS"
+  ],
+  "ack_required": true,
+  "effective_start": "2026-09-12T04:47:11Z",
+  "extendable": true,
+  "freshness_window": "PT15M",
+  "requestor": {
+    "agency_name": "Bayview Street Fair LLC",
+    "agency_type": "EVENT_ORGANIZER",
+    "authority_id": "urn:gfn:authority:us-ca-sf-bayviewfair",
+    "jurisdiction": {
+      "name": "San Francisco, CA",
+      "same_code": "006075"
+    },
+    "incident_number": "F26-0912-0447",
+    "on_scene_callsign": "Battalion 2",
+    "contact": {
+      "hotline": "+14155550142",
+      "role": "Incident Commander",
+      "email": "ops-desk@example-sffd.gov"
+    }
+  },
+  "reason": {
+    "code": "FIRE",
+    "severity": "CRITICAL",
+    "public_text": "Three-alarm structure fire with active suppression. Apparatus and hose lines across the roadway.",
+    "hazard_notes": "Heavy smoke, charged hose lines across Valencia St, aerial ladder set up mid-block. Standing water."
+  },
+  "restriction": {
+    "level": "PROHIBITED",
+    "applies_to": [
+      "ADS_DRIVERLESS",
+      "ADS_SUPERVISED",
+      "ADS_TRUCK",
+      "SIDEWALK_ROBOT"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "z1",
+      "area_desc": "Valencia St between 18th St and 20th St, including 19th St west to Guerrero St. Covers the fire building and apparatus staging.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -122.4221,
+              37.7615
+            ],
+            [
+              -122.4189,
+              37.7615
+            ],
+            [
+              -122.4189,
+              37.7592
+            ],
+            [
+              -122.4221,
+              37.7592
+            ],
+            [
+              -122.4221,
+              37.7615
+            ]
+          ]
+        ]
+      },
+      "road_refs": [
+        {
+          "system": "OSM",
+          "id": "way/8952341"
+        },
+        {
+          "system": "OSM",
+          "id": "way/8952342"
+        }
+      ]
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLWNhLXNmLWZpcmUtMjAyNi0wMSJ9",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  },
+  "effective_end": "2026-09-12T04:50:00Z",
+  "references": [
+    "urn:gfn:us-ca-sf-fire:2026-0912-0447,1"
+  ],
+  "original_effective_start": "2026-09-12T04:47:11Z"
+}

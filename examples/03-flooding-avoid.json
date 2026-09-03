@@ -1,0 +1,137 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-tx-harris-oem:2026-0415-flood-07",
+  "sequence": 3,
+  "msg_type": "UPDATE",
+  "status": "ACTUAL",
+  "references": [
+    "urn:gfn:us-tx-harris-oem:2026-0415-flood-07,2"
+  ],
+  "issued_at": "2026-04-15T11:20:00Z",
+  "priority": 1,
+  "scope": "PUBLIC",
+  "channels": [
+    "DIRECT_API",
+    "IPAWS"
+  ],
+  "ack_required": true,
+  "effective_start": "2026-04-15T11:20:00Z",
+  "effective_end": "2026-04-16T11:00:00Z",
+  "extendable": true,
+  "freshness_window": "PT1H",
+  "requestor": {
+    "agency_name": "Harris County Office of Emergency Management",
+    "agency_type": "EMERGENCY_MANAGEMENT",
+    "authority_id": "urn:gfn:authority:us-tx-harris-oem",
+    "jurisdiction": {
+      "name": "Harris County, TX",
+      "same_code": "048201"
+    },
+    "incident_number": "HC-2026-0415-FLOOD",
+    "contact": {
+      "hotline": "+17135550100",
+      "role": "EOC Operations Section Chief",
+      "email": "eoc@example-harriscounty.gov"
+    }
+  },
+  "reason": {
+    "code": "FLOODING",
+    "severity": "HIGH",
+    "public_text": "Bayou out of banks. Multiple underpasses holding water of unknown depth. Extent revised as of 11:20 UTC.",
+    "hazard_notes": "Water depth is not observable from the road surface at night. Several roadways undermined. Do not attempt depth estimation from camera imagery."
+  },
+  "restriction": {
+    "level": "AVOID",
+    "applies_to": [
+      "ADS_DRIVERLESS",
+      "ADS_SUPERVISED",
+      "ADS_TRUCK",
+      "ADS_TRANSIT"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE",
+    "corridors": [
+      {
+        "name": "I-610 mainlanes, elevated and clear",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -95.4118,
+              29.754
+            ],
+            [
+              -95.4116,
+              29.77
+            ],
+            [
+              -95.4112,
+              29.783
+            ]
+          ]
+        },
+        "direction": "BOTH"
+      }
+    ]
+  },
+  "zones": [
+    {
+      "zone_id": "inundation-north",
+      "area_desc": "Buffalo Bayou floodplain north bank, from Shepherd Dr east to Studemont St, extending two blocks north of Memorial Dr.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -95.4108,
+              29.7684
+            ],
+            [
+              -95.3882,
+              29.7684
+            ],
+            [
+              -95.3882,
+              29.7596
+            ],
+            [
+              -95.4108,
+              29.7596
+            ],
+            [
+              -95.4108,
+              29.7684
+            ]
+          ]
+        ]
+      }
+    },
+    {
+      "zone_id": "underpass-cluster",
+      "area_desc": "Underpasses at Waugh Dr, Montrose Blvd and Dunlavy St beneath the Memorial Dr embankment.",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -95.3984,
+            29.7622
+          ],
+          [
+            -95.3931,
+            29.7618
+          ],
+          [
+            -95.3886,
+            29.7615
+          ]
+        ]
+      },
+      "buffer_m": 120
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLXR4LWhhcnJpcy1vZW0tMjAyNi0wMSJ9",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  },
+  "original_effective_start": "2026-04-15T11:20:00Z"
+}

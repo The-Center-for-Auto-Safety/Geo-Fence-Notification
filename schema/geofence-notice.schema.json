@@ -1,0 +1,605 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://spec.example.org/gfn/0.1/geofence-notice.schema.json",
+  "title": "Geofence Notice (GFN) v0.1",
+  "description": "A signed, time-bounded instruction from a public authority restricting automated vehicle operation within a defined area. See GFN-0.1-specification.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "spec_version",
+    "notice_id",
+    "sequence",
+    "msg_type",
+    "status",
+    "issued_at",
+    "effective_start",
+    "requestor",
+    "reason",
+    "restriction",
+    "zones"
+  ],
+
+  "properties": {
+    "spec_version": {
+      "const": "gfn/0.1"
+    },
+    "notice_id": {
+      "type": "string",
+      "pattern": "^urn:gfn:[a-z0-9][a-z0-9._-]*:[A-Za-z0-9][A-Za-z0-9._:-]*$",
+      "maxLength": 200,
+      "description": "Globally unique and stable across revisions. Never reused."
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4096,
+      "description": "Increments by 1 per revision of notice_id. Replay protection. Capped so that a single forged high-sequence message cannot permanently lock the legitimate issuer out of correcting or cancelling its own notice."
+    },
+    "msg_type": {
+      "enum": ["NEW", "UPDATE", "CANCEL", "EXTEND", "ACK_REQUEST"]
+    },
+    "status": {
+      "enum": ["ACTUAL", "EXERCISE", "TEST", "DRAFT"],
+      "description": "Only ACTUAL changes vehicle behavior in production."
+    },
+    "references": {
+      "type": "array",
+      "maxItems": 32,
+      "items": {
+        "type": "string",
+        "pattern": "^urn:gfn:[a-z0-9][a-z0-9._-]*:[A-Za-z0-9][A-Za-z0-9._:-]*,[1-9][0-9]*$",
+        "description": "notice_id,sequence"
+      }
+    },
+    "issued_at": { "$ref": "#/$defs/rfc3339Utc" },
+    "language": {
+      "type": "string",
+      "pattern": "^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$",
+      "default": "en-US"
+    },
+
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4,
+      "description": "0 life safety immediate, 4 informational. Governs queueing, not vehicle behavior."
+    },
+    "scope": {
+      "enum": ["PUBLIC", "RESTRICTED", "PRIVATE"],
+      "default": "RESTRICTED"
+    },
+    "addressed_operators": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 200,
+      "items": { "$ref": "#/$defs/operatorUrn" }
+    },
+    "channels": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": ["DIRECT_API", "IPAWS", "EAS", "WEA", "C_V2X", "SATELLITE", "MANUAL"]
+      }
+    },
+    "ack_required": { "type": "boolean", "description": "Defaults to true for priority 0 and 1, false otherwise." },
+
+    "effective_start": { "$ref": "#/$defs/rfc3339Utc" },
+    "effective_end": { "$ref": "#/$defs/rfc3339Utc" },
+    "duration": {
+      "type": "string",
+      "pattern": "^P(?!$)(\\d+Y)?(\\d+M)?(\\d+W)?(\\d+D)?(T(?!$)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+      "description": "ISO 8601 duration, e.g. PT4H. Mutually exclusive with effective_end."
+    },
+    "original_effective_start": {
+      "$ref": "#/$defs/rfc3339Utc",
+      "description": "effective_start of sequence 1 of this notice_id. REQUIRED on UPDATE, CANCEL and EXTEND. Bounds cumulative duration across extensions (Section 4.3)."
+    },
+    "extendable": { "type": "boolean", "default": true },
+    "freshness_window": {
+      "type": "string",
+      "pattern": "^P(?!$)(\\d+D)?(T(?!$)(\\d+H)?(\\d+M)?(\\d+S)?)?$",
+      "description": "Advisory. A receiver MUST clamp this to its own policy maximum; it is issuer-supplied and therefore cannot be trusted to bound staleness."
+    },
+
+    "requestor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agency_name", "agency_type", "authority_id", "jurisdiction", "contact"],
+      "properties": {
+        "agency_name": { "type": "string", "minLength": 2, "maxLength": 200 },
+        "agency_type": {
+          "enum": [
+            "FIRE_EMS",
+            "LAW_ENFORCEMENT",
+            "EMERGENCY_MANAGEMENT",
+            "PUBLIC_WORKS",
+            "UTILITY",
+            "TRANSPORTATION_AGENCY",
+            "MUNICIPAL_GOVERNMENT",
+            "STATE_GOVERNMENT",
+            "FEDERAL_GOVERNMENT",
+            "MILITARY",
+            "TRIBAL_GOVERNMENT",
+            "EVENT_ORGANIZER"
+          ]
+        },
+        "authority_id": {
+          "type": "string",
+          "pattern": "^urn:gfn:authority:[a-z0-9][a-z0-9._-]*$",
+          "maxLength": 200,
+          "description": "MUST equal the subject of the signing certificate."
+        },
+        "jurisdiction": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "minLength": 2, "maxLength": 200 },
+            "same_code": {
+              "type": "string",
+              "pattern": "^[0-9]{6}$",
+              "description": "FIPS/SAME six-digit code for CAP and EAS interoperability."
+            },
+            "geometry_ref": { "type": "string", "maxLength": 300 }
+          }
+        },
+        "incident_number": { "type": "string", "maxLength": 80 },
+        "on_scene_callsign": { "type": "string", "maxLength": 40 },
+        "contact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["hotline"],
+          "properties": {
+            "hotline": {
+              "type": "string",
+              "pattern": "^\\+[1-9][0-9]{6,14}$",
+              "description": "E.164, digits only after the leading plus. Staffed callback number, 24/7 for Tier 1, 1W and Tier 2. Extensions belong in contact.role, not here."
+            },
+            "role": { "type": "string", "maxLength": 80 },
+            "email": {
+              "type": "string",
+              "format": "email",
+              "maxLength": 200
+            }
+          }
+        }
+      }
+    },
+
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code"],
+      "properties": {
+        "code": {
+          "enum": [
+            "FIRE", "WILDFIRE", "HAZMAT", "GAS_LEAK", "EXPLOSION", "STRUCTURE_COLLAPSE",
+            "CRIME_SCENE", "ACTIVE_THREAT", "POLICE_ACTIVITY", "CIVIL_UNREST", "BOMB_THREAT",
+            "MASS_CASUALTY", "SEARCH_RESCUE", "MEDICAL_OPERATION",
+            "FLOODING", "SEVERE_WEATHER", "SNOW_ICE", "EARTHQUAKE", "LANDSLIDE", "TSUNAMI",
+            "UTILITY_OUTAGE", "DOWNED_POWERLINE", "WATER_MAIN", "ROAD_DAMAGE",
+            "BRIDGE_CLOSURE", "SIGNAL_OUTAGE", "CONSTRUCTION",
+            "COLLISION", "VEHICLE_FIRE", "ROADWAY_OBSTRUCTION",
+            "VIP_MOVEMENT", "DIGNITARY_PROTECTION", "PARADE", "PUBLIC_EVENT",
+            "FILMING", "SPECIAL_OPERATION",
+            "EVACUATION", "PUBLIC_HEALTH", "DRILL", "OTHER"
+          ]
+        },
+        "severity": { "enum": ["CRITICAL", "HIGH", "MEDIUM", "LOW"] },
+        "public_text": {
+          "type": "string",
+          "maxLength": 200,
+          "description": "Disclosable. No PII, no PHI, no suspect or victim names."
+        },
+        "internal_text": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Operator-only. Delivered only when scope is RESTRICTED or PRIVATE. No PII or PHI."
+        },
+        "hazard_notes": { "type": "string", "maxLength": 500 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "code": { "const": "OTHER" } }, "required": ["code"] },
+          "then": {
+            "required": ["public_text"],
+            "properties": { "public_text": { "minLength": 1 } }
+          }
+        }
+      ]
+    },
+
+    "restriction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "applies_to", "on_entry_behavior", "occupant_policy"],
+      "properties": {
+        "level": {
+          "enum": ["PROHIBITED", "AVOID", "NO_STOP", "NO_PUDO", "NO_DRIVERLESS", "SPEED_LIMITED"]
+        },
+        "applies_to": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "ADS_DRIVERLESS", "ADS_SUPERVISED", "ADS_TRUCK", "ADS_TRANSIT",
+              "SIDEWALK_ROBOT", "UAS", "ALL_AUTOMATED"
+            ]
+          }
+        },
+        "max_speed_kph": { "type": "number", "minimum": 10, "maximum": 130, "description": "Floor of 10 km/h. A near-zero limit turns a zone into a rolling roadblock, which is a rear-end collision generator." },
+        "on_entry_behavior": {
+          "enum": [
+            "EXIT_VIA_NEAREST_SAFE_EGRESS",
+            "EXIT_VIA_SPECIFIED_ROUTE",
+            "HOLD_AT_SAFE_LOCATION",
+            "REMOTE_OPERATOR_REQUIRED"
+          ],
+          "default": "EXIT_VIA_NEAREST_SAFE_EGRESS"
+        },
+        "egress_route": { "$ref": "#/$defs/lineString" },
+        "occupant_policy": {
+          "enum": [
+            "COMPLETE_TRIP_OUTSIDE_ZONE",
+            "COMPLETE_TRIP_TO_DESTINATION",
+            "RELOCATE_AND_REBOOK"
+          ],
+          "default": "COMPLETE_TRIP_OUTSIDE_ZONE"
+        },
+        "exempt_operators": {
+          "type": "array",
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/operatorUrn" }
+        },
+        "exempt_reason": { "type": "string", "maxLength": 300 },
+        "corridors": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "geometry"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1, "maxLength": 120 },
+              "geometry": { "$ref": "#/$defs/lineString" },
+              "direction": { "enum": ["BOTH", "INBOUND", "OUTBOUND"], "default": "BOTH" }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "const": "SPEED_LIMITED" } }, "required": ["level"] },
+          "then": { "required": ["max_speed_kph"] }
+        },
+        {
+          "if": {
+            "properties": { "on_entry_behavior": { "const": "EXIT_VIA_SPECIFIED_ROUTE" } },
+            "required": ["on_entry_behavior"]
+          },
+          "then": { "required": ["egress_route"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "exempt_operators": { "type": "array", "minItems": 1 }
+            },
+            "required": ["exempt_operators"]
+          },
+          "then": { "required": ["exempt_reason"] }
+        },
+        {
+          "if": {
+            "properties": {
+              "occupant_policy": { "const": "COMPLETE_TRIP_TO_DESTINATION" }
+            },
+            "required": ["occupant_policy"]
+          },
+          "then": {
+            "properties": { "level": { "enum": ["NO_PUDO", "SPEED_LIMITED"] } }
+          }
+        },
+        {
+          "description": "Holding inside a PROHIBITED zone parks a vehicle in the hazard. That is the failure the default exists to prevent.",
+          "if": {
+            "properties": { "level": { "const": "PROHIBITED" } },
+            "required": ["level"]
+          },
+          "then": {
+            "properties": {
+              "on_entry_behavior": {
+                "enum": [
+                  "EXIT_VIA_NEAREST_SAFE_EGRESS",
+                  "EXIT_VIA_SPECIFIED_ROUTE",
+                  "REMOTE_OPERATOR_REQUIRED"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "zones": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/zone" }
+    },
+
+    "manual_entry": {
+      "type": "object",
+      "description": "Present when channels includes MANUAL: a notice transcribed from a phone call.",
+      "additionalProperties": false,
+      "required": ["taken_by", "taken_at", "verification_method"],
+      "properties": {
+        "taken_by": { "type": "string", "maxLength": 120 },
+        "taken_at": { "$ref": "#/$defs/rfc3339Utc" },
+        "verification_method": {
+          "enum": ["CALLBACK_TO_PUBLISHED_NUMBER", "KNOWN_CONTACT", "DISPATCH_CONFIRMED", "OTHER"]
+        },
+        "notes": { "type": "string", "maxLength": 500 }
+      }
+    },
+
+    "signature": {
+      "type": "object",
+      "description": "Detached JWS over the RFC 8785 canonicalization of this object with 'signature' removed. REQUIRED when status is ACTUAL.",
+      "additionalProperties": false,
+      "required": ["protected", "signature"],
+      "properties": {
+        "protected": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "description": "base64url JOSE header. alg MUST be ES256; MUST carry x5c or kid."
+        },
+        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "description": "Exactly one of effective_end or duration.",
+      "oneOf": [
+        { "required": ["effective_end"], "not": { "required": ["duration"] } },
+        { "required": ["duration"], "not": { "required": ["effective_end"] } }
+      ]
+    },
+    {
+      "description": "UPDATE, CANCEL and EXTEND must reference the prior notice.",
+      "if": {
+        "properties": { "msg_type": { "enum": ["UPDATE", "CANCEL", "EXTEND"] } },
+        "required": ["msg_type"]
+      },
+      "then": {
+        "required": ["references"],
+        "properties": { "references": { "minItems": 1 } }
+      }
+    },
+    {
+      "description": "A live perimeter or protective movement must not be published to consumer navigation.",
+      "if": {
+        "properties": {
+          "reason": {
+            "properties": {
+              "code": {
+                "enum": ["ACTIVE_THREAT", "DIGNITARY_PROTECTION", "SPECIAL_OPERATION", "BOMB_THREAT"]
+              }
+            },
+            "required": ["code"]
+          }
+        },
+        "required": ["reason"]
+      },
+      "then": { "properties": { "scope": { "enum": ["RESTRICTED", "PRIVATE"] } } }
+    },
+    {
+      "description": "internal_text is operator-only and must not ride on a publishable notice.",
+      "if": { "properties": { "scope": { "const": "PUBLIC" } }, "required": ["scope"] },
+      "then": { "properties": { "reason": { "not": { "required": ["internal_text"] } } } }
+    },
+    {
+      "description": "PRIVATE scope must name its recipients.",
+      "if": { "properties": { "scope": { "const": "PRIVATE" } }, "required": ["scope"] },
+      "then": { "required": ["addressed_operators"] }
+    },
+    {
+      "description": "A live notice must be signed and must carry an absolute end. duration is an authoring convenience for drafts and exercises only; a replayed duration-only notice would restart its own clock.",
+      "if": { "properties": { "status": { "const": "ACTUAL" } }, "required": ["status"] },
+      "then": { "required": ["signature", "effective_end"] }
+    },
+    {
+      "description": "Lifecycle messages must be signed regardless of status. An unsigned CANCEL would otherwise clear a live restriction for free.",
+      "if": {
+        "properties": { "msg_type": { "enum": ["UPDATE", "CANCEL", "EXTEND"] } },
+        "required": ["msg_type"]
+      },
+      "then": { "required": ["signature", "original_effective_start"] }
+    },
+    {
+      "description": "A manually transcribed notice must carry its provenance.",
+      "if": {
+        "properties": { "channels": { "type": "array", "contains": { "const": "MANUAL" } } },
+        "required": ["channels"]
+      },
+      "then": { "required": ["manual_entry"] }
+    }
+  ],
+
+  "$defs": {
+    "rfc3339Utc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]+)?Z$",
+      "description": "RFC 3339 in UTC with a trailing Z."
+    },
+    "operatorUrn": {
+      "type": "string",
+      "pattern": "^urn:gfn:operator:[a-z0-9][a-z0-9._-]*$",
+      "maxLength": 200
+    },
+    "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+    "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+    "position": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 3,
+      "prefixItems": [
+        { "$ref": "#/$defs/longitude" },
+        { "$ref": "#/$defs/latitude" },
+        { "type": "number" }
+      ],
+      "items": false,
+      "description": "GeoJSON order: [longitude, latitude]. This is the REVERSE of CAP 1.2."
+    },
+    "linearRing": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 512,
+      "items": { "$ref": "#/$defs/position" },
+      "description": "Closed ring: first and last positions identical."
+    },
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "Point" },
+        "coordinates": { "$ref": "#/$defs/position" }
+      }
+    },
+    "lineString": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "LineString" },
+        "coordinates": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 512,
+          "items": { "$ref": "#/$defs/position" }
+        }
+      }
+    },
+    "polygon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "Polygon" },
+        "coordinates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": { "$ref": "#/$defs/linearRing" }
+        }
+      }
+    },
+    "multiPolygon": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "coordinates"],
+      "properties": {
+        "type": { "const": "MultiPolygon" },
+        "coordinates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 16,
+            "items": { "$ref": "#/$defs/linearRing" }
+          }
+        }
+      }
+    },
+    "zone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["zone_id", "area_desc", "geometry"],
+      "properties": {
+        "zone_id": { "type": "string", "minLength": 1, "maxLength": 40 },
+        "area_desc": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 400,
+          "description": "Plain-language boundary a dispatcher could read over the radio."
+        },
+        "geometry": {
+          "oneOf": [
+            { "$ref": "#/$defs/polygon" },
+            { "$ref": "#/$defs/multiPolygon" },
+            { "$ref": "#/$defs/lineString" },
+            { "$ref": "#/$defs/point" }
+          ]
+        },
+        "buffer_m": {
+          "type": "number",
+          "exclusiveMinimum": 0,
+          "maximum": 5000,
+          "description": "REQUIRED for LineString and Point geometry."
+        },
+        "altitude_min_ft": { "type": "number", "minimum": -1500, "maximum": 60000 },
+        "altitude_max_ft": { "type": "number", "minimum": -1500, "maximum": 60000 },
+        "altitude_agl": {
+          "type": "boolean",
+          "description": "true when altitude bounds are above ground level, false when above mean sea level. REQUIRED whenever an altitude bound is present: UAS practice is AGL, CAP is AMSL, and an unstated datum is a flight-safety defect."
+        },
+        "road_refs": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["system", "id"],
+            "properties": {
+              "system": { "enum": ["OSM", "TMC", "OpenLR", "LOCAL"] },
+              "id": { "type": "string", "maxLength": 120 }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "description": "LineString and Point geometry require a buffer.",
+          "if": {
+            "properties": {
+              "geometry": {
+                "properties": { "type": { "enum": ["LineString", "Point"] } },
+                "required": ["type"]
+              }
+            },
+            "required": ["geometry"]
+          },
+          "then": { "required": ["buffer_m"] }
+        },
+        {
+          "description": "Polygon geometry must not carry a buffer. A 5 km buffer on a polygon would dilate a 2 km2 zone past 100 km2 while every area check still read the undilated ring.",
+          "if": {
+            "properties": {
+              "geometry": {
+                "properties": { "type": { "enum": ["Polygon", "MultiPolygon"] } },
+                "required": ["type"]
+              }
+            },
+            "required": ["geometry"]
+          },
+          "then": { "not": { "required": ["buffer_m"] } }
+        },
+        {
+          "description": "Altitude bounds are only meaningful for airborne automation.",
+          "if": {
+            "anyOf": [
+              { "required": ["altitude_min_ft"] },
+              { "required": ["altitude_max_ft"] }
+            ]
+          },
+          "then": { "required": ["altitude_agl"] }
+        }
+      ]
+    }
+  }
+}

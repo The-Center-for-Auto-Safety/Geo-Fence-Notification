@@ -1,0 +1,3077 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Demonstration console for GFN v0.1: a fire department draws a geofence and an automated vehicle fleet responds.">
+<style>html,body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Geofence Dispatch Console</title>
+</head>
+<body>
+<style>
+/* ------------------------------------------------------------------ *
+ * Geofence Dispatch Console
+ *
+ * Design goals, in priority order:
+ *   1. The three things you do to a live notice are always on screen.
+ *   2. A tired person at 04:00 can get a correct notice out in one click.
+ *   3. Nothing decorative competes with the map or the action bar.
+ *
+ * Standard neutral palette, system fonts, no web fonts and no network
+ * dependency. Light by default, dark automatically at night, because
+ * dispatch runs around the clock.
+ * ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg:        #eceef1;
+  --surface:   #ffffff;
+  --surface-2: #f6f7f9;
+  --surface-3: #eaecef;
+  --border:    #d5d9df;
+  --border-2:  #bcc2cb;
+
+  --text:      #14171c;
+  --text-2:    #4b525d;
+  --text-3:    #6c7480;
+
+  --danger:      #b3261e;
+  --danger-2:    #8e1d17;
+  --danger-tint: #fdecea;
+  --danger-line: #efc2be;
+
+  --info:      #15599c;
+  --info-tint: #e9f1fa;
+  --info-line: #bcd4ec;
+
+  --ok:        #1a7040;
+  --ok-tint:   #e7f4ec;
+  --ok-line:   #bcdcc8;
+
+  --warn:      #8a5a00;
+  --warn-tint: #fbf2e0;
+  --warn-line: #ecd9ac;
+
+  /* map */
+  --m-bg:      #f1f0ec;
+  --m-block:   #e5e3dc;
+  --m-case:    #d2cfc6;
+  --m-road:    #ffffff;
+  --m-dash:    #cdd2d8;
+  --m-label:   #7a8089;
+  --m-rule:    #9aa1aa;
+
+  --shadow-1: 0 1px 2px rgba(16, 20, 28, 0.06), 0 1px 3px rgba(16, 20, 28, 0.08);
+  --shadow-2: 0 2px 6px rgba(16, 20, 28, 0.10);
+
+  --r: 6px;
+  --f: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --fm: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --bar-h: 60px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:        #14171b;
+    --surface:   #1b1f24;
+    --surface-2: #21262c;
+    --surface-3: #272d34;
+    --border:    #333a43;
+    --border-2:  #454e59;
+
+    --text:      #e9edf2;
+    --text-2:    #b3bcc7;
+    --text-3:    #8b95a1;
+
+    --danger:      #f0796d;
+    --danger-2:    #f9958a;
+    --danger-tint: #3a1c19;
+    --danger-line: #5c2a25;
+
+    --info:      #74b3ef;
+    --info-tint: #16283a;
+    --info-line: #27455f;
+
+    --ok:        #6cc48d;
+    --ok-tint:   #16301f;
+    --ok-line:   #275034;
+
+    --warn:      #e0b25e;
+    --warn-tint: #33270f;
+    --warn-line: #55411a;
+
+    --m-bg:      #191d22;
+    --m-block:   #1f242a;
+    --m-case:    #2b323a;
+    --m-road:    #39424c;
+    --m-dash:    #4a545f;
+    --m-label:   #8b95a1;
+    --m-rule:    #6b7683;
+
+    --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-2: 0 2px 8px rgba(0, 0, 0, 0.4);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--f);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button, input, select, textarea { font: inherit; color: inherit; }
+
+:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+
+.sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ================================================== sticky action bar = */
+
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: var(--bar-h);
+  padding: 8px 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-1);
+  flex-wrap: wrap;
+}
+
+.appbar-id { display: flex; align-items: center; gap: 10px; flex: none; }
+.appbar-id svg { width: 24px; height: 27px; flex: none; }
+.appbar-id .t { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.appbar-id .s { font-size: 12px; color: var(--text-3); line-height: 1.2; }
+
+/* the three lifecycle actions, always visible */
+.appbar-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: var(--surface-2); border-color: var(--text-3); }
+.btn:active:not(:disabled) { background: var(--surface-3); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  min-width: 140px;
+}
+.btn-danger:hover:not(:disabled) { background: var(--danger-2); border-color: var(--danger-2); color: #fff; }
+.btn-danger:disabled { background: var(--surface-2); border-color: var(--border-2); color: var(--text-3); opacity: 1; }
+@media (prefers-color-scheme: dark) {
+  .btn-danger { color: #24100d; }
+  .btn-danger:hover:not(:disabled) { color: #24100d; }
+}
+
+.btn[hidden] { display: none !important; }
+
+/* status + countdown */
+
+.appbar-state {
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface-2);
+  flex: none;
+}
+.appbar-state .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--text-3); flex: none; }
+.appbar-state .lab { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.appbar-state .cd {
+  font-family: var(--fm); font-size: 15px; font-variant-numeric: tabular-nums;
+  color: var(--text-2); padding-left: 10px; border-left: 1px solid var(--border);
+}
+.appbar-state[data-state="DRAFT"] .lab { color: var(--text-2); }
+.appbar-state[data-state="LIVE"]  { background: var(--danger-tint); border-color: var(--danger-line); }
+.appbar-state[data-state="LIVE"]  .lab { color: var(--danger); }
+.appbar-state[data-state="LIVE"]  .dot { background: var(--danger); animation: blink 1.6s ease-in-out infinite; }
+.appbar-state[data-state="CLEAR"] { background: var(--ok-tint); border-color: var(--ok-line); }
+.appbar-state[data-state="CLEAR"] .lab { color: var(--ok); }
+.appbar-state[data-state="CLEAR"] .dot { background: var(--ok); }
+.appbar-state[data-state="REVISING"] { background: var(--warn-tint); border-color: var(--warn-line); }
+.appbar-state[data-state="REVISING"] .lab { color: var(--warn); }
+.appbar-state[data-state="REVISING"] .dot { background: var(--warn); }
+.appbar-state[data-state="ENDED"] .lab { color: var(--text-3); }
+
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .appbar-state .dot { animation: none !important; } }
+
+.appbar-spacer { flex: 1 1 auto; }
+
+.clock {
+  font-family: var(--fm); font-size: 12.5px; color: var(--text-3);
+  text-align: right; font-variant-numeric: tabular-nums; line-height: 1.35; flex: none;
+}
+.clock b { color: var(--text-2); font-weight: 600; }
+
+.seg { display: flex; border: 1px solid var(--border-2); border-radius: var(--r); overflow: hidden; flex: none; }
+.seg button {
+  min-height: 34px; padding: 0 11px; border: 0; background: var(--surface);
+  font-family: var(--fm); font-size: 12px; color: var(--text-3); cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--info-tint); color: var(--info); font-weight: 700; }
+
+/* ============================================================ layout = */
+
+.shell {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr) 340px;
+  gap: 1px;
+  background: var(--border);
+  align-items: start;
+}
+.col { background: var(--bg); min-width: 0; }
+
+@media (max-width: 1240px) {
+  .shell { grid-template-columns: 320px minmax(0, 1fr); }
+  .col-out { grid-column: 1 / -1; }
+  .col-scroll { max-height: none; overflow: visible; }
+}
+@media (max-width: 860px) {
+  .shell { grid-template-columns: 1fr; }
+  .col-map { order: -1; }
+  .appbar-actions { order: 3; width: 100%; }
+  .btn-danger { flex: 1 1 auto; }
+}
+
+/* ============================================================= cards = */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-1);
+  margin: 12px;
+  padding: 14px 15px 16px;
+}
+.card + .card { margin-top: 0; }
+
+.card-h {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px;
+}
+.card-h h2 { font-size: 14px; font-weight: 700; margin: 0; letter-spacing: -0.005em; }
+.card-h .hint { font-size: 12px; color: var(--text-3); }
+
+/* lock notice while a notice is live */
+
+.lockbar {
+  display: none;
+  align-items: flex-start; gap: 9px;
+  margin: 12px 12px 0;
+  padding: 11px 13px;
+  background: var(--warn-tint);
+  border: 1px solid var(--warn-line);
+  border-radius: 8px;
+  font-size: 13.5px; color: var(--text); line-height: 1.45;
+}
+.col-form[data-locked="true"] .lockbar { display: flex; }
+.col-form[data-locked="true"] .card:not(.always-on) { opacity: 0.5; }
+.col-form[data-locked="true"] .lockable { pointer-events: none; }
+
+/* ============================================================ fields = */
+
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+
+.field > label, .grouplab {
+  font-size: 12.5px; font-weight: 600; color: var(--text-2);
+}
+.field .sub { font-size: 12px; color: var(--text-3); margin-top: -2px; }
+
+.field input[type="text"], .field select, .field textarea {
+  min-height: 40px;
+  padding: 9px 11px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  font-size: 14.5px;
+  width: 100%;
+}
+.field textarea { resize: vertical; min-height: 78px; line-height: 1.45; }
+.field .mono { font-family: var(--fm); font-size: 13.5px; }
+.field select { cursor: pointer; }
+.field input:disabled, .field select:disabled, .field textarea:disabled {
+  background: var(--surface-2); color: var(--text-3);
+}
+
+.counter { font-size: 11.5px; color: var(--text-3); text-align: right; }
+.counter[data-over="true"] { color: var(--danger); font-weight: 600; }
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+
+/* ---------------------------------------------------------- presets - */
+
+.presets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.preset {
+  display: flex; flex-direction: column; gap: 2px;
+  min-height: 56px; padding: 9px 11px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--r); cursor: pointer; text-align: left;
+}
+.preset:hover { background: var(--info-tint); border-color: var(--info); }
+.preset .n { font-size: 14px; font-weight: 700; }
+.preset .d { font-size: 11.5px; color: var(--text-3); line-height: 1.3; }
+
+/* ----------------------------------------------------------- levels - */
+
+.levels { display: flex; flex-direction: column; gap: 7px; }
+.level {
+  display: grid; grid-template-columns: 20px 1fr auto; gap: 10px; align-items: center;
+  min-height: 44px; padding: 9px 11px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--r); cursor: pointer; text-align: left;
+}
+.level:hover { background: var(--surface-2); }
+.level .radio {
+  width: 18px; height: 18px; border-radius: 50%;
+  border: 2px solid var(--border-2); background: var(--surface);
+}
+.level .name { font-size: 14.5px; font-weight: 600; line-height: 1.25; }
+.level .code { font-family: var(--fm); font-size: 10.5px; color: var(--text-3); white-space: nowrap; }
+.level[aria-pressed="true"] { border-color: var(--danger); background: var(--danger-tint); }
+.level[aria-pressed="true"] .radio { border-color: var(--danger); box-shadow: inset 0 0 0 3px var(--surface); background: var(--danger); }
+.level[aria-pressed="true"] .name { color: var(--text); }
+.level:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ------------------------------------------------------------ chips - */
+
+.chips { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  min-height: 34px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: 17px; font-size: 13px; color: var(--text-2); cursor: pointer;
+}
+.chip[aria-pressed="true"] { background: var(--info-tint); border-color: var(--info); color: var(--info); font-weight: 600; }
+.chip:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --------------------------------------------------------- duration - */
+
+.dur-row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.dur-value { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.dur-note { font-size: 12px; color: var(--text-3); }
+
+.quick { display: flex; gap: 7px; margin-top: 2px; }
+.quick button {
+  flex: 1 1 0; min-height: 36px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--r); font-size: 13.5px; font-weight: 600; color: var(--text-2); cursor: pointer;
+}
+.quick button[aria-pressed="true"] { background: var(--info-tint); border-color: var(--info); color: var(--info); }
+.quick button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+input[type="range"] {
+  -webkit-appearance: none; appearance: none;
+  width: 100%; height: 26px; background: transparent; cursor: pointer; margin: 0;
+}
+input[type="range"]::-webkit-slider-runnable-track { height: 5px; background: var(--surface-3); border: 1px solid var(--border); border-radius: 3px; }
+input[type="range"]::-moz-range-track { height: 5px; background: var(--surface-3); border: 1px solid var(--border); border-radius: 3px; }
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--info); margin-top: -8px;
+  box-shadow: var(--shadow-1);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--info);
+}
+input[type="range"]:disabled::-webkit-slider-thumb { border-color: var(--border-2); }
+
+.endstamp {
+  font-family: var(--fm); font-size: 12.5px; color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 11px; line-height: 1.65; margin-top: 10px;
+}
+.endstamp b { color: var(--text); font-weight: 600; }
+.endstamp .note { display: block; font-family: var(--f); font-size: 12.5px; color: var(--text-3); margin-top: 6px; line-height: 1.45; }
+
+/* ============================================================== map = */
+
+.maptools {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 12px 12px 0;
+}
+.tool {
+  display: inline-flex; align-items: center; gap: 7px;
+  min-height: 38px; padding: 0 13px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--r); font-size: 13.5px; font-weight: 600; color: var(--text-2); cursor: pointer;
+}
+.tool:hover:not(:disabled) { background: var(--surface-2); color: var(--text); }
+.tool[aria-pressed="true"] { background: var(--danger-tint); border-color: var(--danger); color: var(--danger); }
+.tool svg { width: 14px; height: 14px; flex: none; }
+.tool:disabled { opacity: 0.45; cursor: not-allowed; }
+.tool-note { font-size: 12.5px; color: var(--text-3); margin-left: auto; text-align: right; }
+
+.mapwrap {
+  position: relative; margin: 12px;
+  background: var(--m-bg); border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden; box-shadow: var(--shadow-1);
+}
+#map { display: block; width: 100%; height: auto; touch-action: none; }
+#map.drawing { cursor: crosshair; }
+#map:focus-visible { outline: 2px solid var(--info); outline-offset: -2px; }
+
+.map-legend {
+  position: absolute; left: 10px; bottom: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 5px;
+  font-size: 11.5px; color: var(--text-2); pointer-events: none; box-shadow: var(--shadow-1);
+}
+.map-legend div { display: flex; align-items: center; gap: 7px; }
+.map-legend i { width: 10px; height: 10px; border-radius: 2px; flex: none; display: block; }
+
+/* readouts */
+
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 8px; margin: 0 12px 12px; }
+.readout {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; box-shadow: var(--shadow-1);
+}
+.readout .k { font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+.readout .v {
+  font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums;
+  line-height: 1.2; margin-top: 2px; letter-spacing: -0.02em;
+}
+.readout .v small { font-size: 12px; font-weight: 500; color: var(--text-3); }
+.readout .v[data-tone="danger"] { color: var(--danger); }
+.readout .v[data-tone="info"]   { color: var(--info); }
+.readout .v[data-tone="warn"]   { color: var(--warn); }
+.readout .v[data-tone="ok"]     { color: var(--ok); }
+
+/* limit meters */
+
+.meters { display: flex; flex-direction: column; gap: 11px; }
+.meter-label { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--text-2); }
+.meter-label b { font-variant-numeric: tabular-nums; font-weight: 600; }
+.meter-track { height: 6px; background: var(--surface-3); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.meter-fill { height: 100%; background: var(--ok); border-radius: 3px; transition: width 0.25s ease; }
+.meter-fill[data-band="warn"] { background: var(--warn); }
+.meter-fill[data-band="over"] { background: var(--danger); }
+
+/* =========================================================== output = */
+
+.tabs { display: flex; gap: 6px; padding: 12px 12px 0; flex-wrap: wrap; }
+.tab {
+  min-height: 36px; padding: 0 11px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--r);
+  font-size: 13.5px; font-weight: 600; color: var(--text-3); cursor: pointer;
+}
+.tab:hover { color: var(--text-2); background: var(--surface-2); }
+.tab[aria-selected="true"] { background: var(--surface); border-color: var(--border); color: var(--text); box-shadow: var(--shadow-1); }
+.tab .badge {
+  display: inline-block; margin-left: 6px; min-width: 18px; padding: 0 6px;
+  font-size: 11.5px; font-weight: 700; border-radius: 9px;
+  background: var(--surface-3); color: var(--text-2);
+}
+.tab .badge[data-tone="bad"] { background: var(--danger); color: #fff; }
+.tab .badge[data-tone="ok"]  { background: var(--ok); color: #fff; }
+@media (prefers-color-scheme: dark) {
+  .tab .badge[data-tone="bad"], .tab .badge[data-tone="ok"] { color: #10161c; }
+}
+
+.tabpanel[hidden] { display: none !important; }
+
+pre.code {
+  margin: 0;
+  font-family: var(--fm); font-size: 12px; line-height: 1.6;
+  color: var(--text-2);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 11px 12px;
+  overflow-x: auto; white-space: pre; tab-size: 2;
+}
+.j-key { color: var(--info); }
+.j-str { color: var(--ok); }
+.j-num { color: var(--danger); }
+.j-bool { color: var(--warn); }
+.x-tag { color: var(--info); }
+.x-attr { color: var(--ok); }
+
+.copyrow { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 9px; }
+.copyrow .cap { font-family: var(--fm); font-size: 11.5px; color: var(--text-3); }
+.mini {
+  min-height: 32px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--border-2);
+  border-radius: var(--r); font-size: 13px; font-weight: 600; color: var(--text-2); cursor: pointer;
+}
+.mini:hover { background: var(--surface-2); color: var(--text); }
+
+/* --------------------------------------------------- ready / checks - */
+
+.verdict {
+  display: flex; align-items: center; gap: 11px;
+  padding: 13px 14px; border-radius: 8px; margin-bottom: 12px;
+  border: 1px solid var(--ok-line); background: var(--ok-tint);
+}
+.verdict .icon {
+  width: 26px; height: 26px; border-radius: 50%; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--ok); color: #fff; font-size: 15px; font-weight: 700;
+}
+.verdict .t { font-size: 15px; font-weight: 700; line-height: 1.25; }
+.verdict .s { font-size: 12.5px; color: var(--text-2); }
+.verdict[data-ok="false"] { border-color: var(--danger-line); background: var(--danger-tint); }
+.verdict[data-ok="false"] .icon { background: var(--danger); }
+@media (prefers-color-scheme: dark) {
+  .verdict .icon { color: #10161c; }
+}
+
+.checks { display: flex; flex-direction: column; gap: 6px; }
+.check {
+  display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start;
+  padding: 9px 11px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r);
+}
+.check[data-ok="false"] { border-color: var(--danger-line); background: var(--danger-tint); }
+.check .glyph { font-size: 13px; line-height: 1.4; text-align: center; font-weight: 700; }
+.check[data-ok="true"]  .glyph { color: var(--ok); }
+.check[data-ok="false"] .glyph { color: var(--danger); }
+.check .t { font-size: 13.5px; font-weight: 600; line-height: 1.35; }
+.check .why { display: block; font-size: 12.5px; font-weight: 400; color: var(--text-3); margin-top: 2px; line-height: 1.4; }
+.check[data-ok="false"] .why { color: var(--danger); }
+
+details.more { margin-top: 12px; }
+details.more > summary {
+  cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-2);
+  padding: 8px 0; list-style: none;
+}
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: "▸ "; color: var(--text-3); }
+details.more[open] > summary::before { content: "▾ "; }
+
+.sigblock {
+  margin-top: 10px; font-family: var(--fm); font-size: 11.5px; color: var(--text-3);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--r); padding: 10px 11px; line-height: 1.7; word-break: break-all;
+}
+.sigblock b { color: var(--text-2); font-weight: 600; }
+
+/* -------------------------------------------------------------- log - */
+
+.log { display: flex; flex-direction: column; }
+.logline {
+  display: grid; grid-template-columns: 64px 1fr; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--border);
+  font-size: 13px; line-height: 1.45;
+}
+.logline:last-child { border-bottom: 0; }
+.logline .ts { font-family: var(--fm); font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.logline .msg { color: var(--text-2); word-break: break-word; }
+.logline .msg b { font-weight: 700; }
+.logline[data-kind="issue"] .msg b { color: var(--danger); }
+.logline[data-kind="ack"]   .msg b { color: var(--info); }
+.logline[data-kind="clear"] .msg b { color: var(--ok); }
+.logline[data-kind="warn"]  .msg b { color: var(--warn); }
+.logline[data-kind="end"]   .msg b { color: var(--text-2); }
+
+.empty { color: var(--text-3); font-size: 13.5px; }
+
+.roster { display: flex; flex-direction: column; gap: 5px; }
+.veh {
+  display: grid; grid-template-columns: 10px 1fr auto; gap: 10px; align-items: center;
+  padding: 8px 11px; background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--r); font-size: 13px;
+}
+.veh i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+.veh .id { font-family: var(--fm); font-size: 12.5px; color: var(--text-2); }
+.veh .st { font-size: 11.5px; font-weight: 600; color: var(--text-3); }
+
+.footnote {
+  margin: 0 12px 20px; padding: 12px 14px;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  font-size: 12.5px; color: var(--text-3); line-height: 1.55;
+}
+.footnote b { color: var(--text-2); font-weight: 600; }
+.footnote code { font-family: var(--fm); font-size: 11.5px; color: var(--text-2); }
+</style>
+
+<header class="appbar">
+  <div class="appbar-id">
+    <svg viewBox="0 0 30 34" aria-hidden="true">
+      <path d="M15 1 L28 7 v11 c0 8-6 13-13 15 C8 31 2 26 2 18 V7 Z"
+            fill="none" stroke="currentColor" stroke-width="1.6" opacity="0.55"/>
+      <path d="M15 9 c3 3 1 5 3 7 1-1 1-2 1-3 2 3 2 8-1 10 -2 1-5 1-7 0 -3-2-3-6-1-9 1 2 2 2 3 1 -1-3-1-5 2-6 Z"
+            fill="#b3261e"/>
+    </svg>
+    <div>
+      <div class="t">Geofence Dispatch</div>
+      <div class="s">SFFD &middot; Battalion 2</div>
+    </div>
+  </div>
+
+  <div class="appbar-state" id="statePill" data-state="DRAFT" aria-live="polite">
+    <span class="dot"></span>
+    <span class="lab" id="stateText">Draft</span>
+    <span class="cd" id="stateCountdown" hidden>&mdash;</span>
+  </div>
+
+  <div class="appbar-actions">
+    <button type="button" class="btn btn-danger" id="btnIssue">Issue notice</button>
+    <button type="button" class="btn btn-danger" id="btnPublish" hidden>Publish update</button>
+    <button type="button" class="btn" id="btnDiscard" hidden>Discard</button>
+    <button type="button" class="btn" id="btnUpdate" disabled>Update</button>
+    <button type="button" class="btn" id="btnExtend" disabled>Extend</button>
+    <button type="button" class="btn" id="btnCancel" disabled>Cancel</button>
+  </div>
+
+  <div class="appbar-spacer"></div>
+
+  <div class="clock">
+    <div><b id="clockUtc">--:--:--Z</b></div>
+    <div id="clockLocal">-- ---- PDT</div>
+  </div>
+</header>
+
+<div class="shell">
+
+  <!-- ============================================================ left -->
+  <div class="col col-form" id="formCol" data-locked="false">
+
+    <div class="lockbar">
+      <span>This notice is live. Press <b>Update</b> to change the zone or restriction, <b>Extend</b> to add time, or <b>Cancel</b> to end it.</span>
+    </div>
+
+    <section class="card lockable">
+      <div class="card-h">
+        <h2>Start from an incident type</h2>
+        <span class="hint">one click</span>
+      </div>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="card lockable">
+      <div class="card-h">
+        <h2>Incident</h2>
+        <span class="hint" id="tierTag">Tier 1</span>
+      </div>
+
+      <div class="field">
+        <label for="fIncident">CAD incident number</label>
+        <input type="text" id="fIncident" class="mono" maxlength="80" value="F26-0912-0447" spellcheck="false">
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="fReason">Reason</label>
+          <select id="fReason"></select>
+        </div>
+        <div class="field">
+          <label for="fSeverity">Severity</label>
+          <select id="fSeverity">
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="fPublic">What to tell the public</label>
+        <textarea id="fPublic" maxlength="200" spellcheck="true">Three-alarm structure fire with active suppression. Apparatus and hose lines across the roadway.</textarea>
+        <div class="counter" id="cPublic">0 / 200</div>
+      </div>
+    </section>
+
+    <section class="card lockable">
+      <div class="card-h">
+        <h2>What vehicles must do</h2>
+      </div>
+      <div class="levels" id="levels" role="group" aria-label="Restriction level"></div>
+    </section>
+
+    <section class="card lockable">
+      <div class="card-h">
+        <h2>How long</h2>
+        <span class="hint">expires on its own</span>
+      </div>
+
+      <div class="dur-row">
+        <div class="dur-value" id="durValue">4h 00m</div>
+        <div class="dur-note" id="durNote">from issue</div>
+      </div>
+      <div class="quick" id="durQuick"></div>
+      <input type="range" id="fDuration" min="15" max="240" step="15" value="240" aria-label="Duration in minutes">
+      <div class="endstamp" id="endStamp"></div>
+    </section>
+
+    <details class="card lockable more" id="advanced">
+      <summary>More options</summary>
+
+      <div class="field" style="margin-top:12px">
+        <span class="grouplab">Applies to</span>
+        <div class="chips" id="appliesTo" role="group" aria-label="Vehicle classes"></div>
+      </div>
+
+      <div class="field">
+        <label for="fEntry">If a vehicle is inside when this starts</label>
+        <select id="fEntry"></select>
+      </div>
+
+      <div class="field">
+        <label for="fOccupant">Passengers on board</label>
+        <select id="fOccupant"></select>
+      </div>
+
+      <div class="field">
+        <label for="fHazard">Hazards for vehicles near the line</label>
+        <textarea id="fHazard" maxlength="500" spellcheck="true">Heavy smoke, charged hose lines across Valencia St, aerial ladder set up mid-block. Standing water.</textarea>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label for="fCallsign">On-scene unit</label>
+          <input type="text" id="fCallsign" class="mono" maxlength="40" value="Battalion 2" spellcheck="false">
+        </div>
+        <div class="field">
+          <label for="fHotline">Callback number</label>
+          <input type="text" id="fHotline" class="mono" value="+14155550142" spellcheck="false">
+        </div>
+      </div>
+    </details>
+
+  </div>
+
+  <!-- ============================================================= map -->
+  <div class="col col-map">
+
+    <div class="maptools">
+      <button type="button" class="tool" data-tool="polygon" aria-pressed="false">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5 L8 2 L14 6 L11 14 L4 12 Z"/></svg>Area
+      </button>
+      <button type="button" class="tool" data-tool="circle" aria-pressed="false">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.6"/><circle cx="8" cy="8" r="1" fill="currentColor" stroke="none"/></svg>Radius
+      </button>
+      <button type="button" class="tool" data-tool="corridor" aria-pressed="false">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12 L6 5 L10 9 L14 3"/></svg>Street
+      </button>
+      <button type="button" class="tool" id="btnFinish" disabled>Finish</button>
+      <button type="button" class="tool" id="btnClear">Clear</button>
+      <span class="tool-note" id="toolNote">Drag a corner to adjust the zone</span>
+    </div>
+
+    <div class="mapwrap">
+      <svg id="map" viewBox="0 0 900 700" preserveAspectRatio="xMidYMid meet" tabindex="0"
+           aria-label="Map of the Mission District. With a drawing tool selected, arrow keys move the crosshair, Space places a point, Enter finishes the zone, Backspace removes the last point."></svg>
+      <p class="sr" id="mapStatus" aria-live="polite"></p>
+      <div class="map-legend">
+        <div><i style="background:#b3261e"></i> restricted zone</div>
+        <div><i style="background:#15599c"></i> vehicle, routing normally</div>
+        <div><i style="background:#8a5a00"></i> leaving the zone</div>
+        <div><i style="background:#1a7040"></i> clear of the zone</div>
+      </div>
+    </div>
+
+    <div class="readouts">
+      <div class="readout">
+        <div class="k">Zone area</div>
+        <div class="v" id="rArea">0.000 <small>km&sup2;</small></div>
+      </div>
+      <div class="readout">
+        <div class="k">Expires in</div>
+        <div class="v" id="rExpiry">&mdash;</div>
+      </div>
+      <div class="readout">
+        <div class="k">Still in zone</div>
+        <div class="v" id="rInZone" data-tone="info">0 <small>/ 0</small></div>
+      </div>
+      <div class="readout">
+        <div class="k">Time to clear</div>
+        <div class="v" id="rClear">&mdash;</div>
+      </div>
+    </div>
+
+    <section class="card" style="margin-top:0">
+      <div class="meters">
+        <div>
+          <div class="meter-label"><span>Duration against the Tier 1 limit</span><b id="mDurTxt">4h 00m / 4h</b></div>
+          <div class="meter-track"><div class="meter-fill" id="mDur" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="meter-label"><span id="mAreaLbl">Area against the Tier 1 limit</span><b id="mAreaTxt">0.000 / 2.000 km&sup2;</b></div>
+          <div class="meter-track"><div class="meter-fill" id="mArea" style="width:0%"></div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ========================================================== output -->
+  <div class="col col-out">
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" data-tab="checks" id="tab-checks" aria-controls="panel-checks" aria-selected="true">Ready <span class="badge" id="badgeChecks">0</span></button>
+      <button type="button" class="tab" role="tab" data-tab="log" id="tab-log" aria-controls="panel-log" aria-selected="false">Activity <span class="badge" id="badgeLog">0</span></button>
+      <button type="button" class="tab" role="tab" data-tab="msg" id="tab-msg" aria-controls="panel-msg" aria-selected="false">Message</button>
+    </div>
+
+    <div class="card tabpanel" id="panel-checks" role="tabpanel" aria-labelledby="tab-checks" tabindex="0">
+      <div class="verdict" id="verdict" data-ok="true">
+        <span class="icon" id="verdictIcon">✓</span>
+        <div>
+          <div class="t" id="verdictText">Ready to issue</div>
+          <div class="s" id="verdictSub">All checks pass</div>
+        </div>
+      </div>
+      <details class="more" id="checkDetails">
+        <summary>Show all checks</summary>
+        <div class="checks" id="checks" style="margin-top:8px"></div>
+        <div class="sigblock" id="sigblock"></div>
+      </details>
+    </div>
+
+    <div class="card tabpanel" id="panel-log" role="tabpanel" aria-labelledby="tab-log" tabindex="0" hidden>
+      <div class="log" id="log" aria-live="polite"></div>
+      <details class="more" style="margin-top:10px">
+        <summary>Fleet <span id="fleetCount"></span></summary>
+        <div class="roster" id="roster" style="margin-top:8px"></div>
+      </details>
+    </div>
+
+    <div class="card tabpanel" id="panel-msg" role="tabpanel" aria-labelledby="tab-msg" tabindex="0" hidden>
+      <div class="copyrow">
+        <div class="seg" role="group" aria-label="Message format">
+          <button type="button" data-fmt="json" aria-pressed="true">Notice</button>
+          <button type="button" data-fmt="cap" aria-pressed="false">CAP 1.2</button>
+        </div>
+        <button type="button" class="mini" id="btnCopyMsg">Copy</button>
+      </div>
+      <div id="fmt-json">
+        <pre class="code" id="outJson"></pre>
+      </div>
+      <div id="fmt-cap" hidden>
+        <pre class="code" id="outCap"></pre>
+      </div>
+    </div>
+
+    <div class="footnote">
+      <b>Demonstration.</b> The fleet, the operator acknowledgements and the signature are simulated.
+      The notice itself is real and validates against <code>schema/geofence-notice.schema.json</code> from the GFN v0.1 draft.
+      Street geometry is a stylized Mission District grid anchored on Valencia &amp; 18th; coordinates are true WGS 84 to within about 25&nbsp;m.
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ==================================================================== *
+ * 1. Geodesy and the base map
+ *
+ * The grid is defined in local metres (u east-ish along cross streets,
+ * v north-ish along the avenues) and rotated 8 degrees, which is roughly
+ * how the Mission sits against true north. Converting through lat/lon
+ * rather than drawing straight to pixels means the coordinates a
+ * dispatcher draws are the coordinates that go in the notice.
+ * ==================================================================== */
+
+var ORIGIN = { lat: 37.76150, lon: -122.42130 };   // Valencia & 18th
+var THETA  = -8 * Math.PI / 180;
+var COS_T  = Math.cos(THETA), SIN_T = Math.sin(THETA);
+var M_PER_DEG_LAT = 111320;
+var M_PER_DEG_LON = 111320 * Math.cos(ORIGIN.lat * Math.PI / 180);
+
+function uvToLatLon(u, v) {
+  var east  = u * COS_T + v * SIN_T;
+  var north = -u * SIN_T + v * COS_T;
+  return {
+    lat: ORIGIN.lat + north / M_PER_DEG_LAT,
+    lon: ORIGIN.lon + east / M_PER_DEG_LON
+  };
+}
+
+var AVENUES = [
+  { name: "Dolores St",   u: -420 },
+  { name: "Guerrero St",  u: -210 },
+  { name: "Valencia St",  u:    0 },
+  { name: "Mission St",   u:  215 },
+  { name: "Capp St",      u:  330 },
+  { name: "S Van Ness Av",u:  445 },
+  { name: "Folsom St",    u:  660 }
+];
+
+var CROSSES = [
+  { name: "16th St", v:  330 },
+  { name: "17th St", v:  165 },
+  { name: "18th St", v:    0 },
+  { name: "19th St", v: -160 },
+  { name: "20th St", v: -325 },
+  { name: "21st St", v: -490 }
+];
+
+var ARTERIALS = { "Mission St": 1, "S Van Ness Av": 1, "16th St": 1, "Valencia St": 1 };
+
+/* --- projection: lat/lon -> svg, fitted to the grid extent ---------- */
+
+var VIEW_W = 900, VIEW_H = 700, PAD = 46;
+var PROJ = (function () {
+  var lats = [], lons = [];
+  [-520, 760].forEach(function (u) {
+    [-590, 400].forEach(function (v) {
+      var p = uvToLatLon(u, v); lats.push(p.lat); lons.push(p.lon);
+    });
+  });
+  var minLat = Math.min.apply(null, lats), maxLat = Math.max.apply(null, lats);
+  var minLon = Math.min.apply(null, lons), maxLon = Math.max.apply(null, lons);
+  var wDeg = maxLon - minLon, hDeg = maxLat - minLat;
+  // equirectangular: scale longitude by cos(lat) so the shape is not stretched
+  var sx = (VIEW_W - 2 * PAD) / (wDeg * Math.cos(ORIGIN.lat * Math.PI / 180));
+  var sy = (VIEW_H - 2 * PAD) / hDeg;
+  var s = Math.min(sx, sy);
+  var kx = s * Math.cos(ORIGIN.lat * Math.PI / 180);
+  var cx = (minLon + maxLon) / 2, cy = (minLat + maxLat) / 2;
+  return {
+    toXY: function (lat, lon) {
+      return { x: VIEW_W / 2 + (lon - cx) * kx, y: VIEW_H / 2 - (lat - cy) * s };
+    },
+    toLatLon: function (x, y) {
+      return { lat: cy - (y - VIEW_H / 2) / s, lon: cx + (x - VIEW_W / 2) / kx };
+    },
+    metresPerPx: 1 / (s / M_PER_DEG_LAT)
+  };
+})();
+
+function uvToXY(u, v) { var p = uvToLatLon(u, v); return PROJ.toXY(p.lat, p.lon); }
+
+/* --- street graph --------------------------------------------------- */
+
+var NODES = [], EDGES = [], NODE_AT = {};
+
+(function buildGraph() {
+  AVENUES.forEach(function (a, ai) {
+    CROSSES.forEach(function (c, ci) {
+      var ll = uvToLatLon(a.u, c.v);
+      var xy = PROJ.toXY(ll.lat, ll.lon);
+      var n = { id: NODES.length, ai: ai, ci: ci, lat: ll.lat, lon: ll.lon, x: xy.x, y: xy.y, edges: [] };
+      NODE_AT[ai + ":" + ci] = n.id;
+      NODES.push(n);
+    });
+  });
+  function link(aId, bId, name) {
+    var e = { id: EDGES.length, a: aId, b: bId, name: name };
+    var A = NODES[aId], B = NODES[bId];
+    e.len = Math.hypot(B.x - A.x, B.y - A.y);
+    EDGES.push(e);
+    A.edges.push(e.id); B.edges.push(e.id);
+  }
+  AVENUES.forEach(function (a, ai) {
+    for (var ci = 0; ci < CROSSES.length - 1; ci++) {
+      link(NODE_AT[ai + ":" + ci], NODE_AT[ai + ":" + (ci + 1)], a.name);
+    }
+  });
+  CROSSES.forEach(function (c, ci) {
+    for (var ai = 0; ai < AVENUES.length - 1; ai++) {
+      link(NODE_AT[ai + ":" + ci], NODE_AT[(ai + 1) + ":" + ci], c.name);
+    }
+  });
+})();
+
+/* ==================================================================== *
+ * 2. Zone geometry
+ * ==================================================================== */
+
+var zone = null;   // { kind, ring:[{lat,lon}], centre, radiusM, line, bufferM }
+
+function ringOf(z) {
+  if (!z) return null;
+  if (z.kind === "polygon") return z.ring;
+  if (z.kind === "circle") return circleRing(z.centre, z.radiusM);
+  if (z.kind === "corridor") return corridorRing(z.line, z.bufferM);
+  return null;
+}
+
+function circleRing(c, rM) {
+  var pts = [], n = 40;
+  for (var i = 0; i <= n; i++) {
+    var t = i / n * Math.PI * 2;
+    pts.push({
+      lat: c.lat + (rM * Math.cos(t)) / M_PER_DEG_LAT,
+      lon: c.lon + (rM * Math.sin(t)) / M_PER_DEG_LON
+    });
+  }
+  return pts;
+}
+
+function corridorRing(line, bufM) {
+  // offset the polyline both ways in metres, then cap the ends square
+  if (line.length < 2) return [];
+  var m = line.map(function (p) {
+    return { x: (p.lon - ORIGIN.lon) * M_PER_DEG_LON, y: (p.lat - ORIGIN.lat) * M_PER_DEG_LAT };
+  });
+  function side(sign) {
+    var out = [];
+    for (var i = 0; i < m.length; i++) {
+      var prev = m[Math.max(0, i - 1)], next = m[Math.min(m.length - 1, i + 1)];
+      var dx = next.x - prev.x, dy = next.y - prev.y;
+      var L = Math.hypot(dx, dy) || 1;
+      out.push({ x: m[i].x + sign * bufM * (-dy / L), y: m[i].y + sign * bufM * (dx / L) });
+    }
+    return out;
+  }
+  var pts = side(1).concat(side(-1).reverse());
+  var ring = pts.map(function (p) {
+    return { lat: ORIGIN.lat + p.y / M_PER_DEG_LAT, lon: ORIGIN.lon + p.x / M_PER_DEG_LON };
+  });
+  ring.push({ lat: ring[0].lat, lon: ring[0].lon });
+  return ring;
+}
+
+// equirectangular shoelace, the same approximation the reference validator uses
+function ringAreaKm2(ring) {
+  if (!ring || ring.length < 4) return 0;
+  var lat0 = ring.reduce(function (s, p) { return s + p.lat; }, 0) / ring.length;
+  var kx = 111.320 * Math.cos(lat0 * Math.PI / 180), ky = 110.574;
+  var a = 0;
+  for (var i = 0; i < ring.length - 1; i++) {
+    var x1 = ring[i].lon * kx, y1 = ring[i].lat * ky;
+    var x2 = ring[i + 1].lon * kx, y2 = ring[i + 1].lat * ky;
+    a += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(a) / 2;
+}
+
+function pointInRing(lat, lon, ring) {
+  if (!ring || ring.length < 4) return false;
+  var inside = false;
+  for (var i = 0; i < ring.length - 1; i++) {
+    var y1 = ring[i].lat, x1 = ring[i].lon;
+    var y2 = ring[i + 1].lat, x2 = ring[i + 1].lon;
+    if ((y1 > lat) !== (y2 > lat)) {
+      var xin = x1 + (lat - y1) * (x2 - x1) / (y2 - y1);
+      if (lon < xin) inside = !inside;
+    }
+  }
+  return inside;
+}
+
+function segsCross(p, q, r, s) {
+  function cr(o, a, b) { return (a.lon - o.lon) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lon - o.lon); }
+  var d1 = cr(r, s, p), d2 = cr(r, s, q), d3 = cr(p, q, r), d4 = cr(p, q, s);
+  return ((d1 > 0) !== (d2 > 0)) && ((d3 > 0) !== (d4 > 0));
+}
+
+function ringSelfIntersects(ring) {
+  var n = ring.length - 1;
+  for (var i = 0; i < n; i++) {
+    for (var j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;
+      if (segsCross(ring[i], ring[i + 1], ring[j], ring[j + 1])) return true;
+    }
+  }
+  return false;
+}
+
+function distinctCount(ring) {
+  var seen = {};
+  ring.forEach(function (p) { seen[p.lat.toFixed(6) + "," + p.lon.toFixed(6)] = 1; });
+  return Object.keys(seen).length;
+}
+
+/* jurisdiction: a generous box around the district, standing in for the
+   registered SFFD boundary that a real receiver would check against */
+var JURISDICTION = { minLat: 37.7040, maxLat: 37.8130, minLon: -122.5150, maxLon: -122.3560 };
+function inJurisdiction(ring) {
+  return ring.every(function (p) {
+    return p.lat >= JURISDICTION.minLat && p.lat <= JURISDICTION.maxLat &&
+           p.lon >= JURISDICTION.minLon && p.lon <= JURISDICTION.maxLon;
+  });
+}
+
+/* ==================================================================== *
+ * 3. Vocabularies, straight from the specification
+ * ==================================================================== */
+
+var REASONS = [
+  ["Fire and hazmat", ["FIRE", "WILDFIRE", "HAZMAT", "GAS_LEAK", "EXPLOSION", "STRUCTURE_COLLAPSE"]],
+  ["Medical and rescue", ["MASS_CASUALTY", "SEARCH_RESCUE", "MEDICAL_OPERATION"]],
+  ["Traffic", ["COLLISION", "VEHICLE_FIRE", "ROADWAY_OBSTRUCTION"]],
+  ["Weather and natural", ["FLOODING", "SEVERE_WEATHER", "EARTHQUAKE", "LANDSLIDE"]],
+  ["Infrastructure", ["DOWNED_POWERLINE", "WATER_MAIN", "ROAD_DAMAGE", "STRUCTURE_COLLAPSE"]],
+  ["Other", ["EVACUATION", "DRILL", "OTHER"]]
+];
+
+var LEVELS = [
+  { id: "PROHIBITED",    label: "Keep out entirely",        desc: "Do not enter, do not route through." },
+  { id: "AVOID",         label: "Avoid unless no other way", desc: "Enter only if there is no alternative." },
+  { id: "NO_DRIVERLESS", label: "Human operator aboard",     desc: "No driverless vehicles in the area." },
+  { id: "NO_STOP",       label: "Drive through, no stopping", desc: "Transit at normal speed. No waiting or curb use." },
+  { id: "SPEED_LIMITED", label: "Slow down",                 desc: "Operate at or below 25 km/h." },
+  { id: "NO_PUDO",       label: "No passenger pickups",      desc: "Transit and stopping fine. No curb pickups." }
+];
+
+/* One click sets the reason, severity, restriction, window and public
+   text together. At 04:00 the failure mode is a half-filled form, not a
+   wrong one. */
+var PRESETS = [
+  { n: "Structure fire",  d: "Keep out · 4h", reason: "FIRE", sev: "CRITICAL",
+    level: "PROHIBITED", min: 240,
+    text: "Structure fire with active suppression. Apparatus and hose lines across the roadway." },
+  { n: "Vehicle collision", d: "Avoid · 1h", reason: "COLLISION", sev: "MEDIUM",
+    level: "AVOID", min: 60,
+    text: "Traffic collision under investigation. Lanes blocked." },
+  { n: "Downed power line", d: "Human aboard · 2h", reason: "DOWNED_POWERLINE", sev: "HIGH",
+    level: "NO_DRIVERLESS", min: 120,
+    text: "Downed power line. Crews on scene, officers directing traffic." },
+  { n: "Flooding",        d: "Avoid · 4h", reason: "FLOODING", sev: "HIGH",
+    level: "AVOID", min: 240,
+    text: "Roadway flooding of unknown depth. Do not attempt to cross." }
+];
+
+var DURATIONS = [30, 60, 120, 240];
+
+var CLASSES = ["ADS_DRIVERLESS", "ADS_SUPERVISED", "ADS_TRUCK", "SIDEWALK_ROBOT", "UAS"];
+
+var ENTRY = [
+  ["EXIT_VIA_NEAREST_SAFE_EGRESS", "Drive out by the shortest lawful path. Do not stop."],
+  ["HOLD_AT_SAFE_LOCATION", "Park outside the travel lane and hold."],
+  ["REMOTE_OPERATOR_REQUIRED", "Escalate to a human operator within 30 seconds."]
+];
+
+var OCCUPANT = [
+  ["COMPLETE_TRIP_OUTSIDE_ZONE", "Divert to a safe drop-off outside the zone."],
+  ["RELOCATE_AND_REBOOK", "Divert, then arrange onward transport at no charge."],
+  ["COMPLETE_TRIP_TO_DESTINATION", "Finish the trip. Only valid with NO_PUDO or SPEED_LIMITED."]
+];
+
+// Tier 1: fire and law enforcement, incident scale
+var TIER = { name: "Tier 1", maxHours: 4, maxKm2: 2.0, maxKm2Prohibitive: 2.0 };
+var PROHIBITIVE = { PROHIBITED: 1, NO_DRIVERLESS: 1 };
+
+/* ==================================================================== *
+ * 4. Application state
+ * ==================================================================== */
+
+var state = {
+  status: "DRAFT",           // DRAFT | LIVE | CLEAR | REVISING | ENDED
+  revertTo: null,            // snapshot taken when a revision starts
+  sequence: 1,
+  msgType: "NEW",
+  issueToken: 0,             // invalidates timers left over from a superseded issue
+  priorSentAt: null,
+  noticeId: "urn:gfn:us-ca-sf-fire:2026-0912-0447",
+  issuedAt: null,
+  effectiveStart: null,
+  effectiveEnd: null,
+  originalStart: null,
+  endedReason: null,
+  clearedAt: null,
+  clearSince: null,
+  speed: 1,                  // the clock runs in real time
+  tool: null,
+  draft: null,               // in-progress geometry
+  cursor: null,              // keyboard crosshair, lat/lon
+  keyboard: false,
+  dragVertex: -1,
+  clock: Date.UTC(2026, 8, 12, 4, 47, 11),   // 2026-09-12T04:47:11Z
+  log: [],
+  form: {
+    incident: "F26-0912-0447",
+    reason: "FIRE",
+    severity: "CRITICAL",
+    publicText: "",
+    hazard: "",
+    callsign: "Battalion 2",
+    hotline: "+14155550142",
+    level: "PROHIBITED",
+    applies: { ADS_DRIVERLESS: 1, ADS_SUPERVISED: 1, ADS_TRUCK: 1, SIDEWALK_ROBOT: 1 },
+    entry: "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    occupant: "COMPLETE_TRIP_OUTSIDE_ZONE",
+    durationMin: 240,
+    bufferM: 90
+  }
+};
+
+/* --- preloaded incident: Valencia, 18th to 20th --------------------- */
+
+zone = {
+  kind: "polygon",
+  ring: [[-85, 40], [85, 40], [85, -350], [-85, -350], [-85, 40]].map(function (p) {
+    return uvToLatLon(p[0], p[1]);
+  })
+};
+
+/* ==================================================================== *
+ * 5. Fleet simulation
+ * ==================================================================== */
+
+var VEHICLE_IDS = ["AV-1180", "AV-2245", "AV-3092", "AV-4471", "AV-5518", "AV-6203",
+                   "AV-7734", "AV-8016", "AV-9351", "AV-1627", "AV-2884", "AV-3305"];
+
+var fleet = VEHICLE_IDS.map(function (id, i) {
+  var e = EDGES[(i * 7 + 3) % EDGES.length];
+  return {
+    id: id,
+    edge: e.id,
+    t: ((i * 0.19) % 1),
+    fwd: i % 2 === 0,
+    speed: 26 + (i % 5) * 4,          // svg units per simulated minute
+    state: "normal",                   // normal | exiting | clear | blocked | held
+    path: null,
+    occupied: i % 3 === 0,
+    blockedAt: null
+  };
+});
+
+(function seedInsideZone() {
+  var ring = ringOf(zone);
+  var inside = EDGES.filter(function (e) { return edgeBlocked(e.id, ring); });
+  if (!inside.length) return;
+  [0, 3, 6, 9].forEach(function (fi, k) {
+    var e = inside[k % inside.length];
+    fleet[fi].edge = e.id;
+    fleet[fi].t = 0.25 + 0.16 * k;
+    fleet[fi].fwd = k % 2 === 0;
+  });
+})();
+
+function vehPos(v) {
+  var e = EDGES[v.edge], A = NODES[e.a], B = NODES[e.b];
+  var from = v.fwd ? A : B, to = v.fwd ? B : A;
+  return { x: from.x + (to.x - from.x) * v.t, y: from.y + (to.y - from.y) * v.t, node: to.id, fromNode: from.id };
+}
+
+function vehLatLon(v) {
+  var p = vehPos(v);
+  return PROJ.toLatLon(p.x, p.y);
+}
+
+function edgeBlocked(edgeId, ring) {
+  var e = EDGES[edgeId], A = NODES[e.a], B = NODES[e.b];
+  var a = PROJ.toLatLon(A.x, A.y), b = PROJ.toLatLon(B.x, B.y);
+  var m = PROJ.toLatLon((A.x + B.x) / 2, (A.y + B.y) / 2);
+  return pointInRing(a.lat, a.lon, ring) || pointInRing(b.lat, b.lon, ring) || pointInRing(m.lat, m.lon, ring);
+}
+
+function nodeOutside(nodeId, ring) {
+  var n = NODES[nodeId];
+  return !pointInRing(n.lat, n.lon, ring);
+}
+
+// breadth-first search to the nearest intersection outside the zone
+function egressPath(fromNode, ring) {
+  var seen = {}, queue = [[fromNode]];
+  seen[fromNode] = 1;
+  while (queue.length) {
+    var path = queue.shift();
+    var last = path[path.length - 1];
+    if (path.length > 1 && nodeOutside(last, ring)) return path;
+    if (path.length > 9) continue;
+    NODES[last].edges.forEach(function (eid) {
+      var e = EDGES[eid];
+      var nxt = e.a === last ? e.b : e.a;
+      if (seen[nxt]) return;
+      seen[nxt] = 1;
+      queue.push(path.concat([nxt]));
+    });
+  }
+  return null;
+}
+
+function edgeBetween(a, b) {
+  for (var i = 0; i < NODES[a].edges.length; i++) {
+    var e = EDGES[NODES[a].edges[i]];
+    if ((e.a === a && e.b === b) || (e.b === a && e.a === b)) return e;
+  }
+  return null;
+}
+
+function restrictionActive() {
+  return state.status === "LIVE" || state.status === "CLEAR" || state.status === "REVISING";
+}
+
+// The zone and the form are editable before a notice exists, and again
+// while a revision is being prepared.
+function zoneEditable() {
+  return state.status === "DRAFT" || state.status === "REVISING";
+}
+
+function stepFleet(minutes) {
+  var ring = restrictionActive() ? ringOf(zone) : null;
+  var hard = state.form.level === "PROHIBITED" || state.form.level === "NO_DRIVERLESS";
+  var speedFactor = state.form.level === "SPEED_LIMITED" && ring ? 0.45 : 1;
+
+  if (!ring) {
+    fleet.forEach(function (v) { v.holdOnExit = false; if (v.state === "held") v.state = "normal"; });
+  }
+
+  fleet.forEach(function (v) {
+    if (v.state === "blocked" || v.state === "held") return;
+
+    var pos = vehPos(v);
+    var e = EDGES[v.edge];
+    var slow = 1;
+    if (ring && speedFactor < 1) {
+      var ll = PROJ.toLatLon(pos.x, pos.y);
+      if (pointInRing(ll.lat, ll.lon, ring)) slow = speedFactor;
+    }
+    v.t += (v.speed * minutes * slow) / e.len;
+
+    while (v.t >= 1) {
+      v.t -= 1;
+      var arrived = v.fwd ? e.b : e.a;
+
+      // AV-4471 is the boxed-in vehicle from the spec's acknowledgement example
+      if (ring && hard && v.id === "AV-4471" && !nodeOutside(arrived, ring) && v.state === "exiting") {
+        v.state = "blocked";
+        v.blockedAt = arrived;
+        v.t = 0.5;
+        logLine("warn", "<b>EXCEPTION</b> AV-4471 physically blocked by parked apparatus. Reported on the hotline.");
+        return;
+      }
+
+      var nextEdge = null, nextFwd = true;
+
+      if (ring && v.path && v.path.length > 1) {
+        // following an egress route out of the zone
+        v.path.shift();
+        if (v.path.length > 1) {
+          var eg = edgeBetween(v.path[0], v.path[1]);
+          if (eg) { nextEdge = eg; nextFwd = eg.a === v.path[0]; }
+        } else {
+          v.path = null;
+          v.state = v.holdOnExit ? "held" : "clear";
+        }
+      }
+
+      if (!nextEdge) {
+        var opts = NODES[arrived].edges.filter(function (eid) { return eid !== v.edge; });
+        if (ring && hard) {
+          var open = opts.filter(function (eid) { return !edgeBlocked(eid, ring); });
+          if (open.length) opts = open;
+        } else if (ring && state.form.level === "AVOID") {
+          var pref = opts.filter(function (eid) { return !edgeBlocked(eid, ring); });
+          if (pref.length && Math.random() < 0.85) opts = pref;
+        }
+        if (!opts.length) opts = NODES[arrived].edges;
+        var pick = EDGES[opts[Math.floor(Math.random() * opts.length)]];
+        nextEdge = pick; nextFwd = pick.a === arrived;
+      }
+
+      v.edge = nextEdge.id;
+      v.fwd = nextFwd;
+      e = EDGES[v.edge];
+    }
+
+    // reassess state against the live zone
+    if (ring) {
+      var ll2 = vehLatLon(v);
+      var inside = pointInRing(ll2.lat, ll2.lon, ring);
+      if (inside && hard) {
+        if (v.state !== "exiting") {
+          v.state = "exiting";
+          // Even HOLD_AT_SAFE_LOCATION leaves the zone first: the hold
+          // location has to be outside it (spec 6.5). Parking where the
+          // vehicle stands is the failure the default exists to prevent.
+          var p = vehPos(v);
+          v.path = egressPath(p.node, ring);
+          v.holdOnExit = (state.form.entry === "HOLD_AT_SAFE_LOCATION");
+        }
+      } else if (!inside && (v.state === "exiting" || v.state === "normal")) {
+        v.state = v.state === "exiting" ? "clear" : "normal";
+        v.path = null;
+      }
+    } else {
+      v.state = "normal";
+      v.path = null;
+    }
+  });
+}
+
+function vehiclesInZone() {
+  var ring = ringOf(zone);
+  if (!ring || ring.length < 4) return [];
+  return fleet.filter(function (v) {
+    if (v.state === "blocked") return false;   // reported as an exception, not as unresolved
+    var ll = vehLatLon(v);
+    return pointInRing(ll.lat, ll.lon, ring);
+  });
+}
+
+function inZoneCount() { return vehiclesInZone().length; }
+
+/* ==================================================================== *
+ * 6. Notice construction
+ * ==================================================================== */
+
+function iso(ms) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z"); }
+
+/* A notice_id is never reused. Issuing a second notice under the id of a
+   cancelled one puts it at sequence 1 under a key receivers have already
+   seen, and every conforming receiver discards it. */
+function mintNoticeId(incident) {
+  var slug = String(incident || "inc").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return "urn:gfn:us-ca-sf-fire:" + (slug || "inc") + "-" + Math.floor(state.clock / 1000).toString(36);
+}
+
+function b64url(str) {
+  var bytes = new TextEncoder().encode(str), bin = "";
+  for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function capTime(ms) {
+  // CAP forbids the Z designator; UTC is written as -00:00
+  return iso(ms).replace("Z", "-00:00");
+}
+
+var MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function localParts(ms) {
+  // the console runs on Pacific Daylight Time in September
+  var d = new Date(ms - 7 * 3600 * 1000);
+  var h = d.getUTCHours(), m = String(d.getUTCMinutes()).padStart(2, "0");
+  var ap = h >= 12 ? "PM" : "AM";
+  return {
+    time: (h % 12 || 12) + ":" + m + " " + ap + " PDT",
+    date: d.getUTCDate() + " " + MONTHS[d.getUTCMonth()] + " " + d.getUTCFullYear()
+  };
+}
+
+function localTime(ms) { return localParts(ms).time; }
+
+function round6(n) { return Math.round(n * 1e6) / 1e6; }
+
+function currentRing() { return ringOf(zone); }
+
+function areaKm2() { return ringAreaKm2(currentRing() || []); }
+
+function buildNotice(msgType) {
+  var f = state.form;
+  var ring = currentRing();
+  var start = state.effectiveStart != null ? state.effectiveStart : state.clock;
+  var end = state.effectiveEnd != null ? state.effectiveEnd : start + f.durationMin * 60000;
+  var issued = state.issuedAt != null ? state.issuedAt : state.clock;
+
+  var geometry;
+  if (zone && zone.kind === "circle") {
+    geometry = { type: "Point", coordinates: [round6(zone.centre.lon), round6(zone.centre.lat)] };
+  } else if (zone && zone.kind === "corridor") {
+    geometry = { type: "LineString", coordinates: zone.line.map(function (p) { return [round6(p.lon), round6(p.lat)]; }) };
+  } else {
+    geometry = { type: "Polygon", coordinates: [(ring || []).map(function (p) { return [round6(p.lon), round6(p.lat)]; })] };
+  }
+
+  var zoneObj = {
+    zone_id: "z1",
+    area_desc: describeZone(),
+    geometry: geometry
+  };
+  if (zone && (zone.kind === "circle" || zone.kind === "corridor")) {
+    zoneObj.buffer_m = zone.kind === "circle" ? Math.round(zone.radiusM) : zone.bufferM;
+  }
+
+  var n = {
+    spec_version: "gfn/0.1",
+    notice_id: state.noticeId,
+    sequence: msgType === "NEW" ? 1 : state.sequence,
+    msg_type: msgType,
+    status: "ACTUAL",
+    issued_at: iso(issued),
+    priority: 0,
+    scope: "PUBLIC",
+    channels: ["DIRECT_API", "IPAWS"],
+    ack_required: true,
+    effective_start: iso(start),
+    effective_end: iso(end),
+    extendable: true,
+    requestor: {
+      agency_name: "San Francisco Fire Department",
+      agency_type: "FIRE_EMS",
+      authority_id: "urn:gfn:authority:us-ca-sf-fire",
+      jurisdiction: { name: "San Francisco, CA", same_code: "006075" },
+      incident_number: f.incident,
+      on_scene_callsign: f.callsign,
+      contact: { hotline: f.hotline, role: "Incident Commander" }
+    },
+    reason: {
+      code: f.reason,
+      severity: f.severity,
+      public_text: f.publicText
+    },
+    restriction: {
+      level: f.level,
+      applies_to: Object.keys(f.applies).filter(function (k) { return f.applies[k]; }),
+      on_entry_behavior: f.entry,
+      occupant_policy: f.occupant
+    },
+    zones: [zoneObj],
+    signature: {
+      protected: "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLWNhLXNmLWZpcmUtMjAyNi0wMSJ9",
+      signature: fakeSignature()
+    }
+  };
+
+  if (f.hazard) n.reason.hazard_notes = f.hazard;
+  if (f.level === "SPEED_LIMITED") n.restriction.max_speed_kph = 25;
+  if (msgType !== "NEW") {
+    n.references = [state.noticeId + "," + (state.sequence - 1)];
+    n.original_effective_start = iso(state.originalStart);
+  }
+  return n;
+}
+
+/* A deterministic stand-in for the detached JWS. A real console signs the
+   RFC 8785 canonicalization with the agency's ES256 key; this only needs
+   to look and behave like a signature that changes when the notice does. */
+function fakeSignature() {
+  var basis = JSON.stringify([
+    state.noticeId, state.sequence, state.form.level, state.form.reason,
+    state.form.durationMin, state.form.incident,
+    (currentRing() || []).map(function (p) { return [round6(p.lon), round6(p.lat)]; })
+  ]);
+  var h1 = 0x811c9dc5, h2 = 0x01000193;
+  for (var i = 0; i < basis.length; i++) {
+    h1 = (h1 ^ basis.charCodeAt(i)) >>> 0;
+    h1 = (h1 * 0x01000193) >>> 0;
+    h2 = (h2 + basis.charCodeAt(i) * (i + 7)) >>> 0;
+  }
+  var alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+  var out = "";
+  var s1 = h1, s2 = h2;
+  for (var k = 0; k < 86; k++) {
+    s1 = (s1 * 1664525 + 1013904223) >>> 0;
+    s2 = (s2 ^ (s1 >>> 7)) >>> 0;
+    out += alphabet[((s1 ^ s2) >>> 0) % 64];
+  }
+  return out;
+}
+
+function describeZone() {
+  var ring = currentRing();
+  if (!ring || ring.length < 4) return "No zone drawn.";
+  var touched = {};
+  EDGES.forEach(function (e) {
+    if (edgeBlocked(e.id, ring)) touched[e.name] = 1;
+  });
+  var names = Object.keys(touched);
+  if (!names.length) return "Zone drawn between mapped intersections in the Mission District.";
+  if (names.length === 1) return names[0] + ", within the marked perimeter.";
+  var last = names.pop();
+  return names.join(", ") + " and " + last + ", within the marked perimeter.";
+}
+
+/* --- CAP 1.2 rendering ---------------------------------------------- */
+
+var CAP_CATEGORY = {
+  FIRE: "Fire", WILDFIRE: "Fire", VEHICLE_FIRE: "Fire",
+  HAZMAT: "CBRNE", GAS_LEAK: "CBRNE", EXPLOSION: "CBRNE",
+  STRUCTURE_COLLAPSE: "Rescue", SEARCH_RESCUE: "Rescue", MASS_CASUALTY: "Rescue",
+  FLOODING: "Met", SEVERE_WEATHER: "Met",
+  EARTHQUAKE: "Geo", LANDSLIDE: "Geo",
+  DOWNED_POWERLINE: "Infra", WATER_MAIN: "Infra", ROAD_DAMAGE: "Infra",
+  MEDICAL_OPERATION: "Health", EVACUATION: "Safety", DRILL: "Other"
+};
+var CAP_SEVERITY = { CRITICAL: "Extreme", HIGH: "Severe", MEDIUM: "Moderate", LOW: "Minor" };
+
+function buildCap(n) {
+  var ring = currentRing() || [];
+  // CAP writes latitude first. GeoJSON writes longitude first. This one
+  // reversal is the most common defect in geospatial alerting.
+  var poly = ring.map(function (p) { return round6(p.lat) + "," + round6(p.lon); }).join(" ");
+  var cat = CAP_CATEGORY[n.reason.code] || "Other";
+  var start = Date.parse(n.effective_start), end = Date.parse(n.effective_end);
+  var msgType = n.msg_type === "NEW" ? "Alert" : (n.msg_type === "CANCEL" ? "Cancel" : "Update");
+  var resp = (n.restriction.level === "PROHIBITED" || n.restriction.level === "AVOID") ? "Avoid" : "Monitor";
+  var headline = "AV geofence: " + n.restriction.level + " in " + shortArea() + " until " + localTime(end);
+
+  return [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">',
+    '  <identifier>' + esc(n.notice_id) + '</identifier>',
+    '  <sender>' + esc(n.requestor.authority_id) + '</sender>',
+    '  <sent>' + capTime(Date.parse(n.issued_at)) + '</sent>',
+    '  <status>Actual</status>',
+    '  <msgType>' + msgType + '</msgType>',
+    '  <scope>Public</scope>',
+    '  <code>GFNv0.1</code>',
+    '  <code>IPAWSv1.0</code>',
+    '  <incidents>' + esc(n.requestor.incident_number) + '</incidents>',
+    // CAP references are sender,identifier,sent triples, so a gateway has to
+    // retain the sent timestamp of the notice being revised (spec 11.3)
+    n.references
+      ? '  <references>' + esc(n.requestor.authority_id + "," + n.notice_id + "," +
+          capTime(state.priorSentAt || Date.parse(n.issued_at))) + '</references>'
+      : null,
+    '  <info>',
+    '    <category>' + cat + '</category>',
+    '    <category>Transport</category>',
+    '    <event>Automated Vehicle Geofence Notice: ' + esc(n.reason.code) + '</event>',
+    '    <responseType>' + resp + '</responseType>',
+    '    <urgency>Immediate</urgency>',
+    '    <severity>' + (CAP_SEVERITY[n.reason.severity] || "Unknown") + '</severity>',
+    '    <certainty>Observed</certainty>',
+    '    <audience>Automated vehicle operators</audience>',
+    '    <eventCode><valueName>SAME</valueName><value>CEM</value></eventCode>',
+    '    <effective>' + capTime(start) + '</effective>',
+    '    <onset>' + capTime(start) + '</onset>',
+    '    <expires>' + capTime(end) + '</expires>',
+    '    <senderName>' + esc(n.requestor.agency_name) + '</senderName>',
+    '    <headline>' + esc(headline.slice(0, 160)) + '</headline>',
+    '    <description>' + esc(n.reason.public_text) + '</description>',
+    '    <instruction>' + esc(instructionText(n)) + '</instruction>',
+    '    <contact>' + esc(n.requestor.agency_name + " Incident Commander, " + n.requestor.contact.hotline) + '</contact>',
+    '    <parameter><valueName>GFN-version</valueName><value>gfn/0.1</value></parameter>',
+    '    <parameter><valueName>GFN-restriction-level</valueName><value>' + esc(n.restriction.level) + '</value></parameter>',
+    '    <parameter><valueName>GFN-applies-to</valueName><value>' + esc(n.restriction.applies_to.join(",")) + '</value></parameter>',
+    '    <parameter><valueName>GFN-on-entry</valueName><value>' + esc(n.restriction.on_entry_behavior) + '</value></parameter>',
+    '    <parameter><valueName>GFN-payload-alg</valueName><value>ES256</value></parameter>',
+    '    <parameter><valueName>GFN-payload</valueName><value>' + b64url(JSON.stringify(n)) + '</value></parameter>',
+    '    <area>',
+    '      <areaDesc>' + esc(n.zones[0].area_desc) + '</areaDesc>',
+    areaGeometryXml(n, poly),
+    '      <geocode><valueName>SAME</valueName><value>006075</value></geocode>',
+    '    </area>',
+    '  </info>',
+    '</alert>'
+  ].filter(function (l) { return l !== null; }).join("\n");
+}
+
+/* CAP has a native circle form. Emitting the 41-point approximation instead
+   throws away precision the source notice actually carries (spec 11.3). */
+function areaGeometryXml(n, poly) {
+  var g = n.zones[0].geometry;
+  if (g.type === "Point" && n.zones[0].buffer_m) {
+    return '      <circle>' + round6(g.coordinates[1]) + "," + round6(g.coordinates[0]) +
+           " " + (n.zones[0].buffer_m / 1000).toFixed(3) + '</circle>';
+  }
+  return '      <polygon>' + poly + '</polygon>';
+}
+
+function shortArea() {
+  var d = describeZone();
+  return d.length > 60 ? d.slice(0, 57) + "..." : d.replace(/\.$/, "");
+}
+
+var ENTRY_TEXT = {
+  EXIT_VIA_NEAREST_SAFE_EGRESS: "Vehicles already inside must exit by the shortest lawful path without stopping.",
+  HOLD_AT_SAFE_LOCATION: "Vehicles already inside must move outside the zone to a legal parking or loading space and hold.",
+  REMOTE_OPERATOR_REQUIRED: "Vehicles already inside must escalate to a human remote operator within 30 seconds."
+};
+
+function instructionText(n) {
+  var map = {
+    PROHIBITED: "Automated vehicles must not enter or route through the area.",
+    AVOID: "Automated vehicles must treat the area as high cost and transit only if there is no alternative.",
+    NO_STOP: "Automated vehicles may transit the area but must not stop, stand or use the curb.",
+    NO_PUDO: "Automated vehicles must not pick up or drop off passengers in the area.",
+    NO_DRIVERLESS: "Automated vehicles must not operate in the area without a safety operator aboard.",
+    SPEED_LIMITED: "Automated vehicles must operate at or below 25 km/h in the area."
+  };
+  return (map[n.restriction.level] || "") + " " +
+    (ENTRY_TEXT[n.restriction.on_entry_behavior] || "") +
+    " Restriction expires automatically at " + n.effective_end + " unless extended.";
+}
+
+/* ==================================================================== *
+ * 7. Validation, mirroring the reference validator
+ * ==================================================================== */
+
+function runChecks() {
+  var f = state.form, ring = currentRing(), out = [];
+  var area = areaKm2();
+  var hours = f.durationMin / 60;
+  var prohibitive = !!PROHIBITIVE[f.level];
+  var areaCap = prohibitive ? TIER.maxKm2Prohibitive : TIER.maxKm2;
+
+  out.push({
+    ok: !!ring && ring.length >= 4 && distinctCount(ring) >= 3,
+    t: "Zone geometry present",
+    why: ring && ring.length >= 4
+      ? (ring.length - 1) + " vertices, ring closed"
+      : "Draw a polygon, radius or corridor on the map"
+  });
+
+  out.push({
+    ok: !!ring && !ringSelfIntersects(ring),
+    t: "Ring does not self-intersect",
+    why: ring && ringSelfIntersects(ring)
+      ? "A crossed ring makes the area meaningless and each fleet would restrict different ground"
+      : "Shoelace area is well defined"
+  });
+
+  out.push({
+    ok: hours <= TIER.maxHours + 1e-9,
+    t: "Duration within " + TIER.name + " ceiling",
+    why: fmtDur(f.durationMin) + " of " + TIER.maxHours + "h. Past the ceiling, issue a new notice rather than an extension"
+  });
+
+  out.push({
+    ok: area > 0 && area <= areaCap + 1e-9,
+    t: "Area within " + TIER.name + (prohibitive ? " prohibitive" : "") + " ceiling",
+    why: area.toFixed(3) + " km² of " + areaCap.toFixed(3) + " km²" +
+         (prohibitive ? ". PROHIBITED and NO_DRIVERLESS share this ceiling" : "")
+  });
+
+  out.push({
+    ok: true,
+    t: "Level permitted for " + TIER.name,
+    why: f.level + " is available to a fire department at incident scale"
+  });
+
+  var occOk = f.occupant !== "COMPLETE_TRIP_TO_DESTINATION" ||
+              f.level === "NO_PUDO" || f.level === "SPEED_LIMITED";
+  out.push({
+    ok: occOk,
+    t: "Passenger policy consistent with level",
+    why: occOk
+      ? "No trip ends inside the zone"
+      : "A trip cannot finish inside a " + f.level + " zone: that is a stop"
+  });
+
+  var entryOk = !(f.level === "PROHIBITED" && f.entry === "HOLD_AT_SAFE_LOCATION");
+  out.push({
+    ok: entryOk,
+    t: "Entry behavior does not park a vehicle in the hazard",
+    why: entryOk
+      ? f.entry.toLowerCase().replace(/_/g, " ")
+      : "Holding inside a prohibited zone abandons a vehicle in the fire lane"
+  });
+
+  out.push({
+    ok: !!ring && inJurisdiction(ring),
+    t: "Zone inside the registered jurisdiction",
+    why: "San Francisco, SAME 006075"
+  });
+
+  var pii = scanPii(f.publicText) || scanPii(f.hazard) || scanPii(describeZone());
+  out.push({
+    ok: !pii,
+    t: "Free text carries no personal information",
+    why: pii ? "Looks like " + pii + ". This text reaches commercial fleets and the public register" : "Public description and hazard notes are clean"
+  });
+
+  out.push({
+    ok: /^\+[1-9][0-9]{6,14}$/.test(f.hotline),
+    t: "Callback number is E.164",
+    why: /^\+[1-9][0-9]{6,14}$/.test(f.hotline) ? f.hotline + ", staffed 24/7" : "Digits only after the leading plus"
+  });
+
+  out.push({
+    ok: (f.publicText || "").length <= 200 && (f.publicText || "").length > 0,
+    t: "Public description within 200 characters",
+    why: (f.publicText || "").length + " characters"
+  });
+
+  var classes = Object.keys(f.applies).filter(function (k) { return f.applies[k]; });
+  out.push({
+    ok: classes.length > 0,
+    t: "At least one vehicle class named",
+    why: classes.length ? classes.join(", ") : "Select the classes this restriction covers"
+  });
+
+  return out;
+}
+
+var PII_TESTS = [
+  [/\b\d{3}-\d{2}-\d{4}\b/, "a social security number"],
+  [/\bDOB\b|\bdate of birth\b/i, "a date of birth"],
+  [/\b(?:suspect|victim|patient)\s+[A-Z][a-z]+\s+[A-Z][a-z]+/, "a named individual"],
+  [/\b(?:apt|apartment|unit|suite|ste)\.?\s*#?\s*\w{1,6}\b/i, "a unit-level address"]
+];
+
+function scanPii(text) {
+  if (!text) return null;
+  for (var i = 0; i < PII_TESTS.length; i++) {
+    if (PII_TESTS[i][0].test(text)) return PII_TESTS[i][1];
+  }
+  return null;
+}
+
+function fmtDur(min) {
+  var h = Math.floor(min / 60), m = min % 60;
+  return h + "h " + String(m).padStart(2, "0") + "m";
+}
+
+/* ==================================================================== *
+ * 8. Rendering
+ *
+ * Every value that originates in a form field is escaped before it
+ * reaches innerHTML. The specification's own input-handling rules apply
+ * to the console that writes the notice, not only to the fleet that
+ * reads it.
+ * ==================================================================== */
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+var $ = function (id) { return document.getElementById(id); };
+var SVGNS = "http://www.w3.org/2000/svg";
+
+function el(name, attrs, parent) {
+  var e = document.createElementNS(SVGNS, name);
+  for (var k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+
+var map = $("map"), layerBase, layerZone, layerFleet;
+
+/* Map colours come from the stylesheet, so the light and dark palettes
+   are defined in exactly one place and the map follows the OS setting
+   without a second set of hex codes to keep in sync. */
+var MC = {};
+function refreshMapColors() {
+  var cs = getComputedStyle(document.documentElement);
+  function v(name, fallback) {
+    return (cs.getPropertyValue(name) || "").trim() || fallback;
+  }
+  MC = {
+    bg:      v("--m-bg", "#f1f0ec"),
+    block:   v("--m-block", "#e5e3dc"),
+    casing:  v("--m-case", "#d2cfc6"),
+    road:    v("--m-road", "#ffffff"),
+    dash:    v("--m-dash", "#cdd2d8"),
+    label:   v("--m-label", "#7a8089"),
+    rule:    v("--m-rule", "#9aa1aa"),
+    danger:  v("--danger", "#b3261e"),
+    info:    v("--info", "#15599c"),
+    warn:    v("--warn", "#8a5a00"),
+    ok:      v("--ok", "#1a7040"),
+    surface: v("--surface", "#ffffff")
+  };
+}
+
+function drawBase() {
+  refreshMapColors();
+  map.textContent = "";
+
+  var defs = el("defs", {}, map);
+  var hatch = el("pattern", { id: "hatch", width: 10, height: 10, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" }, defs);
+  el("rect", { width: 10, height: 10, fill: MC.danger, "fill-opacity": 0.09 }, hatch);
+  el("line", { x1: 0, y1: 0, x2: 0, y2: 10, stroke: MC.danger, "stroke-opacity": 0.45, "stroke-width": 1.8 }, hatch);
+
+  el("rect", { x: 0, y: 0, width: VIEW_W, height: VIEW_H, fill: MC.bg }, map);
+
+  layerBase = el("g", {}, map);
+  layerZone = el("g", {}, map);
+  layerFleet = el("g", {}, map);
+
+  // city blocks
+  for (var ai = 0; ai < AVENUES.length - 1; ai++) {
+    for (var ci = 0; ci < CROSSES.length - 1; ci++) {
+      var c = [
+        uvToXY(AVENUES[ai].u, CROSSES[ci].v),
+        uvToXY(AVENUES[ai + 1].u, CROSSES[ci].v),
+        uvToXY(AVENUES[ai + 1].u, CROSSES[ci + 1].v),
+        uvToXY(AVENUES[ai].u, CROSSES[ci + 1].v)
+      ];
+      var cx = (c[0].x + c[2].x) / 2, cy = (c[0].y + c[2].y) / 2;
+      var pts = c.map(function (p) {
+        return (p.x + (cx - p.x) * 0.075) + "," + (p.y + (cy - p.y) * 0.075);
+      }).join(" ");
+      el("polygon", { points: pts, fill: MC.block, stroke: MC.casing, "stroke-width": 1 }, layerBase);
+    }
+  }
+
+  // street casings then surfaces
+  [[MC.casing, 1], [MC.road, 0]].forEach(function (pass) {
+    EDGES.forEach(function (e) {
+      var A = NODES[e.a], B = NODES[e.b];
+      var art = ARTERIALS[e.name];
+      var w = (art ? 13 : 9) + (pass[1] ? 3 : 0);
+      el("line", {
+        x1: A.x, y1: A.y, x2: B.x, y2: B.y,
+        stroke: pass[0], "stroke-width": w, "stroke-linecap": "round"
+      }, layerBase);
+    });
+  });
+
+  // centre dashes on the arterials
+  EDGES.forEach(function (e) {
+    if (!ARTERIALS[e.name]) return;
+    var A = NODES[e.a], B = NODES[e.b];
+    el("line", {
+      x1: A.x, y1: A.y, x2: B.x, y2: B.y,
+      stroke: MC.dash, "stroke-width": 1.2, "stroke-dasharray": "7 9"
+    }, layerBase);
+  });
+
+  // street labels
+  AVENUES.forEach(function (a, ai) {
+    var n1 = NODES[NODE_AT[ai + ":0"]], m1 = NODES[NODE_AT[ai + ":1"]];
+    var ang = Math.atan2(m1.y - n1.y, m1.x - n1.x) * 180 / Math.PI + 180;
+    var t = el("text", {
+      x: n1.x, y: n1.y - 13, fill: MC.label,
+      "font-family": "system-ui, sans-serif", "font-size": 10.5, "font-weight": 600,
+      "letter-spacing": "0.04em", "text-anchor": "middle",
+      transform: "rotate(" + ang.toFixed(1) + " " + n1.x + " " + (n1.y - 13) + ")"
+    }, layerBase);
+    t.textContent = a.name;
+  });
+  CROSSES.forEach(function (c, ci) {
+    var n2 = NODES[NODE_AT["0:" + ci]], m2 = NODES[NODE_AT["1:" + ci]];
+    var ang = Math.atan2(m2.y - n2.y, m2.x - n2.x) * 180 / Math.PI;
+    var t = el("text", {
+      x: n2.x - 8, y: n2.y - 8, fill: MC.label,
+      "font-family": "system-ui, sans-serif", "font-size": 10.5, "font-weight": 600,
+      "letter-spacing": "0.04em", "text-anchor": "end",
+      transform: "rotate(" + ang.toFixed(1) + " " + (n2.x - 8) + " " + (n2.y - 8) + ")"
+    }, layerBase);
+    t.textContent = c.name;
+  });
+
+  // north arrow and scale bar
+  var g = el("g", { transform: "translate(" + (VIEW_W - 52) + ",34)" }, layerBase);
+  el("path", { d: "M0,-16 L6,10 L0,4 L-6,10 Z", fill: MC.rule, transform: "rotate(8)" }, g);
+  var nt = el("text", { x: 0, y: 27, fill: MC.label, "font-family": "system-ui, sans-serif",
+                        "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, g);
+  nt.textContent = "N";
+
+  var barM = 200, barPx = barM / PROJ.metresPerPx;
+  var sg = el("g", { transform: "translate(" + (VIEW_W - 40 - barPx) + "," + (VIEW_H - 26) + ")" }, layerBase);
+  el("line", { x1: 0, y1: 0, x2: barPx, y2: 0, stroke: MC.rule, "stroke-width": 2 }, sg);
+  el("line", { x1: 0, y1: -4, x2: 0, y2: 4, stroke: MC.rule, "stroke-width": 2 }, sg);
+  el("line", { x1: barPx, y1: -4, x2: barPx, y2: 4, stroke: MC.rule, "stroke-width": 2 }, sg);
+  var st = el("text", { x: barPx / 2, y: -8, fill: MC.label, "font-family": "system-ui, sans-serif",
+                        "font-size": 11, "text-anchor": "middle" }, sg);
+  st.textContent = "200 m";
+}
+
+function drawZone() {
+  layerZone.textContent = "";
+  var ring = currentRing();
+  var live = restrictionActive();
+
+  drawCursor();
+
+  // in-progress drawing
+  if (state.draft) {
+    var d = state.draft;
+    if (d.kind === "rect") {
+      var rr = rectRing(d.a, d.b).map(function (pt) {
+        var q = PROJ.toXY(pt.lat, pt.lon); return q.x + "," + q.y;
+      }).join(" ");
+      el("polygon", {
+        points: rr, fill: MC.danger, "fill-opacity": 0.1,
+        stroke: MC.danger, "stroke-width": 2.5, "stroke-dasharray": "7 5", "stroke-linejoin": "round"
+      }, layerZone);
+    } else if (d.kind === "polygon" || d.kind === "corridor") {
+      if (d.pts.length) {
+        var pl = d.pts.map(function (p) { var q = PROJ.toXY(p.lat, p.lon); return q.x + "," + q.y; }).join(" ");
+        el(d.kind === "polygon" ? "polygon" : "polyline", {
+          points: pl, fill: d.kind === "polygon" ? MC.danger : "none",
+          "fill-opacity": d.kind === "polygon" ? 0.1 : 0,
+          stroke: MC.danger, "stroke-width": 2.5, "stroke-dasharray": "7 5", "stroke-linejoin": "round"
+        }, layerZone);
+        d.pts.forEach(function (p) {
+          var q = PROJ.toXY(p.lat, p.lon);
+          el("circle", { cx: q.x, cy: q.y, r: 5, fill: MC.surface, stroke: MC.danger, "stroke-width": 2.5 }, layerZone);
+        });
+      }
+    } else if (d.kind === "circle" && d.centre) {
+      var c = PROJ.toXY(d.centre.lat, d.centre.lon);
+      el("circle", { cx: c.x, cy: c.y, r: Math.max(2, (d.radiusM || 0) / PROJ.metresPerPx),
+                     fill: MC.danger, "fill-opacity": 0.1, stroke: MC.danger,
+                     "stroke-width": 2.5, "stroke-dasharray": "7 5" }, layerZone);
+      el("circle", { cx: c.x, cy: c.y, r: 4, fill: MC.danger }, layerZone);
+    }
+    return;
+  }
+
+  if (!ring || ring.length < 4) return;
+
+  var pts = ring.map(function (p) { var q = PROJ.toXY(p.lat, p.lon); return q.x + "," + q.y; }).join(" ");
+  el("polygon", {
+    points: pts,
+    fill: live ? "url(#hatch)" : MC.danger,
+    "fill-opacity": live ? 1 : 0.08,
+    stroke: MC.danger,
+    "stroke-width": live ? 3 : 2.5,
+    "stroke-dasharray": live ? null : "7 5",
+    "stroke-linejoin": "round"
+  }, layerZone);
+
+  // draggable corners, only while the zone is editable
+  if (zoneEditable() && zone.kind === "polygon") {
+    zone.ring.slice(0, -1).forEach(function (p, i) {
+      var q = PROJ.toXY(p.lat, p.lon);
+      var h = el("circle", {
+        cx: q.x, cy: q.y, r: 7, fill: MC.surface, stroke: MC.danger, "stroke-width": 2.5,
+        "data-vertex": i, style: "cursor:grab"
+      }, layerZone);
+      h.addEventListener("pointerdown", function (ev) {
+        ev.stopPropagation();
+        state.dragVertex = i;
+        map.setPointerCapture(ev.pointerId);
+      });
+    });
+  }
+
+  if (live) {
+    var cLat = ring.reduce(function (a, p) { return a + p.lat; }, 0) / ring.length;
+    var cLon = ring.reduce(function (a, p) { return a + p.lon; }, 0) / ring.length;
+    var c2 = PROJ.toXY(cLat, cLon);
+    var lvl = LEVELS.filter(function (l) { return l.id === state.form.level; })[0];
+    var t = el("text", {
+      x: c2.x, y: c2.y, fill: MC.danger, "font-family": "system-ui, sans-serif",
+      "font-size": 15, "font-weight": 700, "text-anchor": "middle",
+      stroke: MC.surface, "stroke-width": 3.5, "paint-order": "stroke"
+    }, layerZone);
+    t.textContent = (lvl ? lvl.label : state.form.level).toUpperCase();
+  }
+}
+
+function drawCursor() {
+  if (!state.keyboard || !state.cursor || !zoneEditable()) return;
+  var q = PROJ.toXY(state.cursor.lat, state.cursor.lon);
+  var g = el("g", {}, layerZone);
+  el("line", { x1: q.x - 14, y1: q.y, x2: q.x + 14, y2: q.y, stroke: MC.info, "stroke-width": 1.8 }, g);
+  el("line", { x1: q.x, y1: q.y - 14, x2: q.x, y2: q.y + 14, stroke: MC.info, "stroke-width": 1.8 }, g);
+  el("circle", { cx: q.x, cy: q.y, r: 6, fill: "none", stroke: MC.info, "stroke-width": 1.8 }, g);
+}
+
+function vehColor(st) {
+  return { normal: MC.info, exiting: MC.warn, clear: MC.ok, blocked: MC.danger, held: MC.warn }[st] || MC.info;
+}
+
+function drawFleet() {
+  layerFleet.textContent = "";
+  fleet.forEach(function (v) {
+    var p = vehPos(v);
+    var col = vehColor(v.state);
+    if (v.state === "exiting" && v.path && v.path.length > 1) {
+      var d = "M" + p.x + "," + p.y + v.path.map(function (nid) {
+        return "L" + NODES[nid].x + "," + NODES[nid].y;
+      }).join("");
+      el("path", { d: d, fill: "none", stroke: MC.warn, "stroke-width": 2,
+                   "stroke-dasharray": "5 4", opacity: 0.7 }, layerFleet);
+    }
+    el("circle", { cx: p.x, cy: p.y, r: 9, fill: col, opacity: 0.18 }, layerFleet);
+    el("circle", { cx: p.x, cy: p.y, r: 5, fill: col, stroke: MC.surface, "stroke-width": 1.6 }, layerFleet);
+    if (v.state === "blocked") {
+      var t = el("text", { x: p.x + 11, y: p.y + 4, fill: MC.danger,
+                           "font-family": "system-ui, sans-serif", "font-size": 11, "font-weight": 700,
+                           stroke: MC.surface, "stroke-width": 3, "paint-order": "stroke" }, layerFleet);
+      t.textContent = v.id;
+    }
+  });
+}
+
+/* --- panels --------------------------------------------------------- */
+
+function renderChecks() {
+  var checks = runChecks();
+  var bad = checks.filter(function (c) { return !c.ok; });
+  var ok = bad.length === 0;
+
+  // One verdict first. The twelve-item list is the detail behind it, not
+  // the thing an incident commander should have to read every time.
+  var v = $("verdict");
+  v.setAttribute("data-ok", String(ok));
+  $("verdictIcon").textContent = ok ? "\u2713" : "!";
+  $("verdictText").textContent = ok
+    ? (state.status === "REVISING" ? "Ready to publish" : "Ready to issue")
+    : (bad.length === 1 ? "One thing to fix" : bad.length + " things to fix");
+  $("verdictSub").textContent = ok
+    ? "Every check passes"
+    : bad[0].t + ". " + bad[0].why;
+
+  $("checks").innerHTML = checks.map(function (c) {
+    return '<div class="check" data-ok="' + c.ok + '">' +
+      '<span class="glyph">' + (c.ok ? "\u2713" : "\u2715") + '</span>' +
+      '<span class="t">' + esc(c.t) + '<span class="why">' + esc(c.why) + '</span></span></div>';
+  }).join("");
+
+  var badge = $("badgeChecks");
+  badge.textContent = ok ? "\u2713" : bad.length;
+  badge.setAttribute("data-tone", ok ? "ok" : "bad");
+
+  var sig = fakeSignature();
+  $("sigblock").innerHTML =
+    '<b>Signature</b> ES256, detached JWS over the RFC 8785 canonicalization<br>' +
+    '<b>Key</b> us-ca-sf-fire-2026-01, chains to the registry root<br>' +
+    '<b>Digest</b> ' + esc(sig.slice(0, 43)) + '<br>' +
+    '<span>Simulated for this demonstration. It changes whenever the notice changes.</span>';
+
+  return ok;
+}
+
+function highlightJson(obj) {
+  var raw = JSON.stringify(obj, null, 2);
+  return esc(raw)
+    .replace(/&quot;([^&]*?)&quot;(\s*:)/g, '<span class="j-key">&quot;$1&quot;</span>$2')
+    .replace(/:\s(&quot;[^\n]*?&quot;)/g, ': <span class="j-str">$1</span>')
+    .replace(/:\s(-?\d+\.?\d*)/g, ': <span class="j-num">$1</span>')
+    .replace(/:\s(true|false|null)/g, ': <span class="j-bool">$1</span>');
+}
+
+function highlightXml(xml) {
+  // Two escapes, both correct and doing different jobs: buildCap escapes so
+  // the XML itself is well formed, and esc() here escapes so the panel shows
+  // those bytes as text rather than letting the browser parse them as markup.
+  return esc(xml)
+    .replace(/(&lt;\/?[\w:?]+)/g, '<span class="x-tag">$1</span>')
+    .replace(/(&gt;)([^&<]+)(&lt;)/g, '$1<span class="x-attr">$2</span>$3');
+}
+
+var lastNotice = null, lastCap = "";
+
+function renderOutputs() {
+  lastNotice = buildNotice(state.status === "DRAFT" ? "NEW" : state.msgType);
+  lastCap = buildCap(lastNotice);
+  $("outJson").innerHTML = highlightJson(lastNotice);
+  $("outCap").innerHTML = highlightXml(lastCap);
+}
+
+function renderLog() {
+  var l = $("log");
+  if (!state.log.length) {
+    l.innerHTML = '<div class="empty">Nothing dispatched yet. Issue the notice to see the fleet respond.</div>';
+  } else {
+    l.innerHTML = state.log.map(function (e) {
+      return '<div class="logline" data-kind="' + esc(e.kind) + '"><span class="ts">' + esc(e.ts) + '</span><span class="msg">' + e.html + '</span></div>';
+    }).join("");
+  }
+  $("badgeLog").textContent = state.log.length;
+
+  $("fleetCount").textContent = fleet.length + " vehicles";
+  $("roster").innerHTML = fleet.map(function (v) {
+    var label = { normal: "routing", exiting: "exiting zone", clear: "clear", blocked: "blocked", held: "holding" }[v.state];
+    return '<div class="veh"><i style="background:' + vehColor(v.state) + '"></i>' +
+      '<span class="id">' + esc(v.id) + (v.occupied ? " · occupied" : "") + '</span>' +
+      '<span class="st">' + esc(label.toUpperCase()) + '</span></div>';
+  }).join("");
+}
+
+function logLine(kind, html) {
+  var d = new Date(state.clock);
+  var ts = String(d.getUTCHours()).padStart(2, "0") + ":" +
+           String(d.getUTCMinutes()).padStart(2, "0") + ":" +
+           String(d.getUTCSeconds()).padStart(2, "0");
+  state.log.unshift({ kind: kind, ts: ts, html: html });
+  if (state.log.length > 60) state.log.pop();
+  renderLog();
+}
+
+function renderReadouts() {
+  var area = areaKm2();
+  $("rArea").innerHTML = area.toFixed(3) + ' <small>km&sup2;</small>';
+  $("rArea").setAttribute("data-tone", area > (PROHIBITIVE[state.form.level] ? TIER.maxKm2Prohibitive : TIER.maxKm2) ? "warn" : "");
+
+  var inZone = inZoneCount();
+  $("rInZone").innerHTML = inZone + ' <small>/ ' + fleet.length + '</small>';
+  $("rInZone").setAttribute("data-tone", inZone === 0 && restrictionActive() ? "ok" : "info");
+
+  if (state.status === "DRAFT") {
+    $("rExpiry").textContent = "—";
+    $("rExpiry").setAttribute("data-tone", "");
+  } else if (state.status === "ENDED") {
+    $("rExpiry").textContent = state.endedReason === "cancelled" ? "cancelled" : "expired";
+    $("rExpiry").setAttribute("data-tone", "");
+  } else {
+    var left = Math.max(0, state.effectiveEnd - state.clock);
+    var h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, s = Math.floor(left / 1000) % 60;
+    $("rExpiry").textContent = h + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    $("rExpiry").setAttribute("data-tone", left < 900000 ? "warn" : "danger");
+  }
+
+  if (state.clearedAt != null) {
+    var secs = Math.round((state.clearedAt - state.effectiveStart) / 1000);
+    $("rClear").innerHTML = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, "0") + ' <small>m:s</small>';
+    $("rClear").setAttribute("data-tone", "ok");
+  } else {
+    $("rClear").textContent = "—";
+    $("rClear").setAttribute("data-tone", "");
+  }
+
+  // ceiling meters
+  var hours = state.form.durationMin / 60;
+  var dPct = Math.min(100, hours / TIER.maxHours * 100);
+  var dFill = $("mDur");
+  dFill.style.width = dPct + "%";
+  dFill.setAttribute("data-band", hours > TIER.maxHours ? "over" : (dPct > 80 ? "warn" : "ok"));
+  $("mDurTxt").textContent = fmtDur(state.form.durationMin) + " / " + TIER.maxHours + "h";
+
+  var prohibitive = !!PROHIBITIVE[state.form.level];
+  var cap = prohibitive ? TIER.maxKm2Prohibitive : TIER.maxKm2;
+  var aPct = Math.min(100, area / cap * 100);
+  var aFill = $("mArea");
+  aFill.style.width = aPct + "%";
+  aFill.setAttribute("data-band", area > cap ? "over" : (aPct > 80 ? "warn" : "ok"));
+  $("mAreaLbl").textContent = "Area against the " + TIER.name + " limit";
+  $("mAreaTxt").innerHTML = area.toFixed(3) + " / " + cap.toFixed(3) + " km&sup2;";
+}
+
+function renderWindow() {
+  var start = state.effectiveStart != null ? state.effectiveStart : state.clock;
+  var end = state.effectiveEnd != null ? state.effectiveEnd : start + state.form.durationMin * 60000;
+
+  $("durValue").textContent = fmtDur(state.form.durationMin);
+  $("durNote").textContent = state.status === "DRAFT" ? "from the moment you issue" : "current window";
+
+  document.querySelectorAll("#durQuick button").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(+b.dataset.min === state.form.durationMin));
+  });
+
+  $("endStamp").innerHTML =
+    'ends <b>' + esc(localTime(end)) + '</b> local<br>' +
+    '<span>' + esc(iso(end)) + '</span>' +
+    '<span class="note">It expires on its own. Nobody has to remember to lift it, ' +
+    'and nobody can leave it running by forgetting.</span>';
+}
+
+function renderStatus() {
+  var st = state.status;
+  var editable = zoneEditable();
+  var liveish = st === "LIVE" || st === "CLEAR";
+
+  var pill = $("statePill");
+  pill.setAttribute("data-state", st);
+  $("stateText").textContent = {
+    DRAFT:    "Draft",
+    LIVE:     "Live · seq " + state.sequence,
+    CLEAR:    "Live · zone clear",
+    REVISING: "Editing revision",
+    ENDED:    state.endedReason === "cancelled" ? "Cancelled" : "Expired"
+  }[st];
+
+  // the countdown belongs beside the actions, where the decision is made
+  var cd = $("stateCountdown");
+  if (st === "DRAFT" || st === "ENDED") {
+    cd.hidden = true;
+  } else {
+    cd.hidden = false;
+    var left = Math.max(0, state.effectiveEnd - state.clock);
+    var h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60, sec = Math.floor(left / 1000) % 60;
+    cd.textContent = h + ":" + String(m).padStart(2, "0") + ":" + String(sec).padStart(2, "0");
+  }
+
+  // form and zone are read-only unless a draft or a revision is open
+  $("formCol").setAttribute("data-locked", String(!editable));
+  $("formCol").querySelectorAll("input, select, textarea, button").forEach(function (c) {
+    c.disabled = !editable;
+  });
+
+  document.querySelectorAll(".tool").forEach(function (b) { b.disabled = !editable; });
+  $("btnFinish").disabled = !editable || !state.draft;
+  $("btnClear").disabled = !editable;
+
+  var ready = renderChecks();
+
+  $("btnIssue").hidden   = st !== "DRAFT" && st !== "ENDED";
+  $("btnIssue").disabled = !ready;
+
+  $("btnPublish").hidden  = st !== "REVISING";
+  $("btnPublish").disabled = !ready;
+  $("btnDiscard").hidden  = st !== "REVISING";
+
+  $("btnUpdate").hidden  = st === "REVISING";
+  $("btnUpdate").disabled = !liveish;
+  $("btnExtend").hidden  = st === "REVISING";
+  $("btnExtend").disabled = !liveish;
+  $("btnCancel").hidden  = st === "REVISING";
+  $("btnCancel").disabled = !liveish;
+
+  $("toolNote").textContent = editable
+    ? (state.draft ? "Release to finish, or click to add more points and press Enter."
+                   : "Drag on the map to draw a zone. Drag a corner to adjust it.")
+    : "Press Update to change the zone";
+}
+
+function renderClock() {
+  var d = new Date(state.clock);
+  $("clockUtc").textContent =
+    String(d.getUTCHours()).padStart(2, "0") + ":" +
+    String(d.getUTCMinutes()).padStart(2, "0") + ":" +
+    String(d.getUTCSeconds()).padStart(2, "0") + "Z";
+  var lp = localParts(state.clock);
+  $("clockLocal").textContent = lp.time + " · " + lp.date;
+}
+
+function renderAll() {
+  drawZone();
+  drawFleet();
+  renderChecks();
+  renderOutputs();
+  renderReadouts();
+  renderWindow();
+  renderStatus();
+  renderClock();
+}
+
+/* ==================================================================== *
+ * 9. Map interaction
+ * ==================================================================== */
+
+function svgPoint(ev) {
+  var r = map.getBoundingClientRect();
+  var vb = map.viewBox.baseVal;
+  var scale = Math.min(r.width / vb.width, r.height / vb.height);
+  var offX = (r.width - vb.width * scale) / 2;
+  var offY = (r.height - vb.height * scale) / 2;
+  return {
+    x: (ev.clientX - r.left - offX) / scale,
+    y: (ev.clientY - r.top - offY) / scale
+  };
+}
+
+/* Pointer drawing.
+ *
+ * Press and drag is what a person actually does when asked to box off a few
+ * blocks, so that gesture draws the zone directly and works whether or not a
+ * tool is armed. Clicking still places individual points for anyone who wants
+ * an exact outline. The previous version required a tool to be armed first and
+ * ignored every click when none was, which after Clear (which un-armed the
+ * tool) left the map looking simply dead.
+ */
+
+var DRAG_SLOP = 6;          // svg units before a press counts as a drag
+var press = null;
+
+function rectRing(a, b) {
+  var north = Math.max(a.lat, b.lat), south = Math.min(a.lat, b.lat);
+  var east = Math.max(a.lon, b.lon), west = Math.min(a.lon, b.lon);
+  return [
+    { lat: north, lon: west }, { lat: north, lon: east },
+    { lat: south, lon: east }, { lat: south, lon: west },
+    { lat: north, lon: west }
+  ];
+}
+
+map.addEventListener("pointerdown", function (ev) {
+  if (!zoneEditable()) return;
+  if (state.dragVertex >= 0) return;      // a corner handle owns this press
+  var p = svgPoint(ev);
+  press = { x: p.x, y: p.y, ll: PROJ.toLatLon(p.x, p.y), moved: false };
+  try { map.setPointerCapture(ev.pointerId); } catch (e) {}
+});
+
+map.addEventListener("pointermove", function (ev) {
+  var p = svgPoint(ev);
+  var ll = PROJ.toLatLon(p.x, p.y);
+
+  // dragging an existing corner
+  if (state.dragVertex >= 0 && zone && zone.kind === "polygon") {
+    zone.ring[state.dragVertex] = ll;
+    if (state.dragVertex === 0) zone.ring[zone.ring.length - 1] = { lat: ll.lat, lon: ll.lon };
+    drawZone();
+    renderReadouts();
+    renderChecks();
+    renderOutputs();
+    renderStatus();
+    return;
+  }
+
+  // dragging out a new zone
+  if (press) {
+    if (!press.moved && Math.hypot(p.x - press.x, p.y - press.y) > DRAG_SLOP) {
+      press.moved = true;
+      state.keyboard = false;
+      if (state.tool === "circle") {
+        state.draft = { kind: "circle", centre: press.ll, radiusM: 0 };
+      } else if (state.tool === "corridor") {
+        state.draft = { kind: "corridor", pts: [press.ll, ll] };
+      } else {
+        state.draft = { kind: "rect", a: press.ll, b: ll };
+      }
+    }
+    if (press.moved && state.draft) {
+      if (state.draft.kind === "circle") {
+        var c = state.draft.centre;
+        var dx = (ll.lon - c.lon) * M_PER_DEG_LON, dy = (ll.lat - c.lat) * M_PER_DEG_LAT;
+        state.draft.radiusM = Math.min(5000, Math.hypot(dx, dy));
+      } else if (state.draft.kind === "corridor") {
+        state.draft.pts[1] = ll;
+      } else {
+        state.draft.b = ll;
+      }
+      drawZone();
+      return;
+    }
+  }
+
+  // click-then-move radius preview, for the click-click circle path
+  if (!press && state.draft && state.draft.kind === "circle" && state.draft.centre) {
+    var c2 = state.draft.centre;
+    var dx2 = (ll.lon - c2.lon) * M_PER_DEG_LON, dy2 = (ll.lat - c2.lat) * M_PER_DEG_LAT;
+    state.draft.radiusM = Math.min(5000, Math.hypot(dx2, dy2));
+    drawZone();
+  }
+});
+
+map.addEventListener("pointerup", function (ev) {
+  try { map.releasePointerCapture(ev.pointerId); } catch (e) {}
+
+  if (state.dragVertex >= 0) {
+    state.dragVertex = -1;
+    press = null;
+    return;
+  }
+
+  if (!press) return;
+  var wasDrag = press.moved, startLl = press.ll;
+  press = null;
+
+  if (wasDrag) { commitDraft(); return; }
+
+  // a plain click places a point, arming the area tool if nothing is armed
+  if (!zoneEditable()) return;
+  if (!state.tool) setTool("polygon");
+  state.keyboard = false;
+  state.cursor = startLl;
+  placePoint(startLl);
+});
+
+map.addEventListener("dblclick", function (ev) {
+  ev.preventDefault();
+  commitDraft();
+});
+
+/* Drawing was pointer-only, which left a keyboard user able to issue the
+   preloaded polygon and nothing else. Arrow keys move a crosshair, Space
+   places a point, Enter finishes, Backspace removes the last point. */
+
+var STEP_M = 25, STEP_FINE_M = 6;
+
+function announce(msg) { $("mapStatus").textContent = msg; }
+
+function ensureCursor() {
+  if (state.cursor) return;
+  var ring = currentRing();
+  if (ring && ring.length) {
+    state.cursor = {
+      lat: ring.reduce(function (a, p) { return a + p.lat; }, 0) / ring.length,
+      lon: ring.reduce(function (a, p) { return a + p.lon; }, 0) / ring.length
+    };
+  } else {
+    state.cursor = { lat: ORIGIN.lat, lon: ORIGIN.lon };
+  }
+}
+
+function nudge(dLat, dLon) {
+  ensureCursor();
+  state.cursor = { lat: state.cursor.lat + dLat, lon: state.cursor.lon + dLon };
+  if (state.draft && state.draft.kind === "circle" && state.draft.centre) {
+    var c = state.draft.centre;
+    state.draft.radiusM = Math.min(5000, Math.hypot(
+      (state.cursor.lon - c.lon) * M_PER_DEG_LON,
+      (state.cursor.lat - c.lat) * M_PER_DEG_LAT));
+  }
+  drawZone();
+}
+
+map.addEventListener("focus", function () { state.keyboard = true; ensureCursor(); drawZone(); });
+map.addEventListener("blur", function () { state.keyboard = false; drawZone(); });
+
+map.addEventListener("keydown", function (ev) {
+  if (!zoneEditable()) return;
+  var m = ev.shiftKey ? STEP_FINE_M : STEP_M;
+  var dLat = m / M_PER_DEG_LAT, dLon = m / M_PER_DEG_LON;
+
+  switch (ev.key) {
+    case "ArrowUp":    nudge(dLat, 0); break;
+    case "ArrowDown":  nudge(-dLat, 0); break;
+    case "ArrowLeft":  nudge(0, -dLon); break;
+    case "ArrowRight": nudge(0, dLon); break;
+    case " ":
+    case "Spacebar":
+      state.keyboard = true;
+      ensureCursor();
+      if (!state.tool) { announce("Choose a drawing tool first."); break; }
+      placePoint({ lat: state.cursor.lat, lon: state.cursor.lon });
+      break;
+    case "Backspace":
+      if (state.draft && state.draft.pts && state.draft.pts.length) {
+        state.draft.pts.pop();
+        announce(state.draft.pts.length + " points placed.");
+        drawZone();
+      }
+      break;
+    default: return;
+  }
+  ev.preventDefault();
+});
+
+document.addEventListener("keydown", function (ev) {
+  if (ev.key === "Enter" && state.draft) { ev.preventDefault(); commitDraft(); }
+  if (ev.key === "Escape" && state.draft) { state.draft = null; setTool(null); renderAll(); announce("Drawing cancelled."); }
+});
+
+function placePoint(ll) {
+  if (state.tool === "polygon" || state.tool === "corridor") {
+    if (!state.draft) state.draft = { kind: state.tool, pts: [] };
+    state.draft.pts.push(ll);
+    announce(state.draft.pts.length + " points placed. Press Enter to finish.");
+  } else if (state.tool === "circle") {
+    if (!state.draft || !state.draft.centre) {
+      state.draft = { kind: "circle", centre: ll, radiusM: 0 };
+      announce("Centre placed. Move the crosshair to set the radius, then press Enter.");
+    } else {
+      commitDraft();
+      return;
+    }
+  }
+  drawZone();
+  renderStatus();
+}
+
+function dedupe(pts) {
+  // a double-click to finish fires pointerdown twice first, so the last
+  // points arrive coincident and would ship as junk vertices
+  return pts.filter(function (p, i) {
+    if (i === 0) return true;
+    var q = pts[i - 1];
+    return Math.abs(p.lat - q.lat) > 2e-6 || Math.abs(p.lon - q.lon) > 2e-6;
+  });
+}
+
+function commitDraft() {
+  var d = state.draft;
+  if (!d) return;
+  if (d.kind === "rect") {
+    var rect = rectRing(d.a, d.b);
+    if (ringAreaKm2(rect) < 0.0004) { state.draft = null; drawZone(); return; }   // a stray twitch
+    zone = { kind: "polygon", ring: rect };
+  } else if (d.kind === "polygon") {
+    d.pts = dedupe(d.pts);
+    if (d.pts.length < 3) return;
+    var ring = d.pts.slice();
+    ring.push({ lat: ring[0].lat, lon: ring[0].lon });
+    zone = { kind: "polygon", ring: ring };
+  } else if (d.kind === "corridor") {
+    d.pts = dedupe(d.pts);
+    if (d.pts.length < 2) return;
+    zone = { kind: "corridor", line: d.pts.slice(), bufferM: state.form.bufferM };
+  } else if (d.kind === "circle") {
+    if (!d.centre || d.radiusM < 20) return;
+    zone = { kind: "circle", centre: d.centre, radiusM: d.radiusM };
+  }
+  state.draft = null;
+  setTool(null);
+  renderAll();
+  announce("Zone set: " + areaKm2().toFixed(3) + " square kilometres.");
+}
+
+function setTool(t) {
+  state.tool = t;
+  document.querySelectorAll(".tool[data-tool]").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.tool === t));
+  });
+  map.classList.toggle("drawing", !!t);
+  if (t) {
+    ensureCursor();
+    announce(t + " tool active. Arrow keys move the crosshair, Space places a point, Enter finishes.");
+  }
+  renderStatus();
+}
+
+document.querySelectorAll(".tool[data-tool]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    var t = b.dataset.tool;
+    state.draft = null;
+    setTool(state.tool === t ? null : t);
+    drawZone();
+  });
+});
+
+$("btnFinish").addEventListener("click", function () { commitDraft(); });
+
+$("btnClear").addEventListener("click", function () {
+  // Leave the area tool armed. Clearing and then finding that the map ignores
+  // every click is the exact dead end this used to create.
+  zone = null;
+  state.draft = null;
+  setTool("polygon");
+  renderAll();
+  announce("Zone cleared. Drag on the map to draw a new one.");
+});
+
+/* ==================================================================== *
+ * 10. Form wiring
+ * ==================================================================== */
+
+(function buildReasonSelect() {
+  var sel = $("fReason");
+  REASONS.forEach(function (grp) {
+    var og = document.createElement("optgroup");
+    og.label = grp[0];
+    grp[1].forEach(function (code) {
+      if (sel.querySelector('option[value="' + code + '"]')) return;
+      var o = document.createElement("option");
+      o.value = code;
+      o.textContent = code.replace(/_/g, " ").toLowerCase().replace(/(^|\s)\w/g, function (c) { return c.toUpperCase(); });
+      og.appendChild(o);
+    });
+    sel.appendChild(og);
+  });
+  sel.value = "FIRE";
+})();
+
+(function buildLevels() {
+  $("levels").innerHTML = LEVELS.map(function (l) {
+    return '<button type="button" class="level" data-level="' + l.id + '" aria-pressed="false" title="' + esc(l.desc) + '">' +
+      '<span class="radio"></span><span class="name">' + esc(l.label) + '</span>' +
+      '<span class="code">' + l.id + '</span></button>';
+  }).join("");
+  $("levels").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".level");
+    if (!b) return;
+    state.form.level = b.dataset.level;
+    syncLevels();
+    renderAll();
+  });
+})();
+
+function syncLevels() {
+  document.querySelectorAll(".level").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(b.dataset.level === state.form.level));
+  });
+  // the schema forbids holding a vehicle inside a prohibited zone
+  var holdOpt = $("fEntry").querySelector('option[value="HOLD_AT_SAFE_LOCATION"]');
+  if (holdOpt) {
+    var forbid = state.form.level === "PROHIBITED";
+    holdOpt.disabled = forbid;
+    holdOpt.textContent = forbid
+      ? "Hold at a safe location (not allowed when keeping vehicles out)"
+      : "Hold at a safe location";
+    if (forbid && state.form.entry === "HOLD_AT_SAFE_LOCATION") {
+      state.form.entry = "EXIT_VIA_NEAREST_SAFE_EGRESS";
+      $("fEntry").value = state.form.entry;
+    }
+  }
+}
+
+(function buildPresets() {
+  $("presets").innerHTML = PRESETS.map(function (pr, i) {
+    return '<button type="button" class="preset" data-preset="' + i + '">' +
+      '<span class="n">' + esc(pr.n) + '</span><span class="d">' + esc(pr.d) + '</span></button>';
+  }).join("");
+  $("presets").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".preset");
+    if (!b || !zoneEditable()) return;
+    var pr = PRESETS[+b.dataset.preset];
+    state.form.reason = pr.reason;
+    state.form.severity = pr.sev;
+    state.form.level = pr.level;
+    state.form.durationMin = pr.min;
+    state.form.publicText = pr.text;
+    if (pr.level === "PROHIBITED") state.form.entry = "EXIT_VIA_NEAREST_SAFE_EGRESS";
+    syncFormFromState();
+    announce(pr.n + " selected. " + fmtDur(pr.min) + ", " + pr.level + ".");
+    renderAll();
+  });
+})();
+
+(function buildQuickDurations() {
+  $("durQuick").innerHTML = DURATIONS.map(function (m) {
+    return '<button type="button" data-min="' + m + '" aria-pressed="false">' +
+      (m < 60 ? m + "m" : (m / 60) + "h") + '</button>';
+  }).join("");
+  $("durQuick").addEventListener("click", function (ev) {
+    var b = ev.target.closest("button[data-min]");
+    if (!b || !zoneEditable()) return;
+    state.form.durationMin = +b.dataset.min;
+    $("fDuration").value = state.form.durationMin;
+    applyDurationChange();
+    renderAll();
+  });
+})();
+
+function applyDurationChange() {
+  // While a notice is live the window belongs to EXTEND, not to the slider.
+  if (state.status === "REVISING" && state.effectiveStart != null) {
+    state.effectiveEnd = state.effectiveStart + state.form.durationMin * 60000;
+  }
+}
+
+function syncFormFromState() {
+  var f = state.form;
+  $("fIncident").value = f.incident;
+  $("fReason").value = f.reason;
+  $("fSeverity").value = f.severity;
+  $("fPublic").value = f.publicText;
+  $("fHazard").value = f.hazard;
+  $("fCallsign").value = f.callsign;
+  $("fHotline").value = f.hotline;
+  $("fEntry").value = f.entry;
+  $("fOccupant").value = f.occupant;
+  $("fDuration").value = f.durationMin;
+  document.querySelectorAll("#appliesTo .chip").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(!!f.applies[b.dataset.class]));
+  });
+  syncLevels();
+  updateCounter();
+}
+
+function showTab(id) {
+  document.querySelectorAll(".tab").forEach(function (t) {
+    t.setAttribute("aria-selected", String(t.dataset.tab === id));
+  });
+  ["checks", "log", "msg"].forEach(function (k) {
+    $("panel-" + k).hidden = (k !== id);
+  });
+}
+
+(function buildChips() {
+  $("appliesTo").innerHTML = CLASSES.map(function (c) {
+    return '<button type="button" class="chip" data-class="' + c + '" aria-pressed="' +
+      (state.form.applies[c] ? "true" : "false") + '">' + c + '</button>';
+  }).join("");
+  $("appliesTo").addEventListener("click", function (ev) {
+    var b = ev.target.closest(".chip");
+    if (!b) return;
+    var c = b.dataset.class;
+    state.form.applies[c] = state.form.applies[c] ? 0 : 1;
+    b.setAttribute("aria-pressed", String(!!state.form.applies[c]));
+    renderAll();
+  });
+})();
+
+(function buildSelects() {
+  ENTRY.forEach(function (e) {
+    var o = document.createElement("option");
+    o.value = e[0];
+    o.textContent = e[0] === "EXIT_VIA_NEAREST_SAFE_EGRESS" ? "Exit by the nearest safe route"
+                  : e[0] === "HOLD_AT_SAFE_LOCATION" ? "Hold at a safe location"
+                  : "Escalate to a remote operator";
+    o.title = e[1];
+    $("fEntry").appendChild(o);
+  });
+  OCCUPANT.forEach(function (e) {
+    var o = document.createElement("option");
+    o.value = e[0];
+    o.textContent = e[0] === "COMPLETE_TRIP_OUTSIDE_ZONE" ? "Drop off safely outside the zone"
+                  : e[0] === "RELOCATE_AND_REBOOK" ? "Divert and rebook at no charge"
+                  : "Finish the trip as booked";
+    o.title = e[1];
+    $("fOccupant").appendChild(o);
+  });
+  $("fEntry").value = state.form.entry;
+  $("fOccupant").value = state.form.occupant;
+})();
+
+function bindText(id, key, extra) {
+  var e = $(id);
+  state.form[key] = e.value;
+  e.addEventListener("input", function () {
+    state.form[key] = e.value;
+    if (extra) extra();
+    renderAll();
+  });
+}
+
+bindText("fIncident", "incident");
+bindText("fCallsign", "callsign");
+bindText("fHotline", "hotline");
+bindText("fPublic", "publicText", updateCounter);
+bindText("fHazard", "hazard");
+
+function updateCounter() {
+  var n = (state.form.publicText || "").length;
+  var c = $("cPublic");
+  c.textContent = n + " / 200";
+  c.setAttribute("data-over", String(n > 200));
+}
+
+$("fReason").addEventListener("change", function () { state.form.reason = this.value; renderAll(); });
+$("fSeverity").addEventListener("change", function () { state.form.severity = this.value; renderAll(); });
+$("fEntry").addEventListener("change", function () { state.form.entry = this.value; renderAll(); });
+$("fOccupant").addEventListener("change", function () { state.form.occupant = this.value; renderAll(); });
+
+$("fDuration").addEventListener("input", function () {
+  state.form.durationMin = parseInt(this.value, 10);
+  applyDurationChange();
+  renderAll();
+});
+
+/* ==================================================================== *
+ * 11. Issue, extend, cancel
+ * ==================================================================== */
+
+$("btnIssue").addEventListener("click", function () {
+  if (!renderChecks()) return;
+  state.noticeId = mintNoticeId(state.form.incident);
+  state.status = "LIVE";
+  state.msgType = "NEW";
+  state.sequence = 1;
+  state.priorSentAt = null;
+  var token = ++state.issueToken;
+  state.issuedAt = state.clock;
+  state.effectiveStart = state.clock;
+  state.originalStart = state.clock;
+  state.effectiveEnd = state.clock + state.form.durationMin * 60000;
+  state.clearedAt = null;
+  state.clearSince = null;
+  state.endedReason = null;
+  setTool(null);
+
+  var area = areaKm2();
+  logLine("issue", "<b>NOTICE ISSUED</b> seq 1 &middot; " + esc(state.form.level) +
+    " &middot; " + area.toFixed(3) + " km² &middot; expires " + esc(iso(state.effectiveEnd)));
+
+  // acknowledgements belong to the notice that asked for them; if it is
+  // cancelled first, they must not land afterwards acknowledging nothing
+  var n0 = inZoneCount();
+  function ackLater(ms, html) {
+    setTimeout(function () { if (state.issueToken === token) logLine("ack", html); }, ms);
+  }
+  ackLater(700,  "<b>ACK</b> urn:gfn:operator:example-av &middot; ACCEPTED &middot; " + n0 + " vehicle" + (n0 === 1 ? "" : "s") + " in zone");
+  ackLater(1500, "<b>ACK</b> urn:gfn:operator:example-rides &middot; ACCEPTED &middot; routing updated");
+  ackLater(2400, "<b>ACK</b> urn:gfn:operator:example-freight &middot; ACCEPTED &middot; 0 vehicles in zone");
+
+  showTab("log");
+
+  renderAll();
+});
+
+/* An UPDATE revises a live notice: same notice_id, next sequence, with
+   references and original_effective_start. Editing in place at sequence 1
+   would silently rewrite a notice receivers have already accepted. */
+$("btnUpdate").addEventListener("click", function () {
+  if (state.status !== "LIVE" && state.status !== "CLEAR") return;
+  state.revertTo = {
+    zone: zone ? JSON.parse(JSON.stringify(zone)) : null,
+    form: JSON.parse(JSON.stringify(state.form))
+  };
+  state.status = "REVISING";
+  logLine("warn", "<b>EDITING</b> revision open. The published restriction stays in force until you publish or discard.");
+  renderAll();
+});
+
+$("btnDiscard").addEventListener("click", function () {
+  if (state.status !== "REVISING") return;
+  if (state.revertTo) {
+    zone = state.revertTo.zone;
+    state.form = state.revertTo.form;
+    syncFormFromState();
+  }
+  state.revertTo = null;
+  state.draft = null;
+  setTool(null);
+  state.status = "LIVE";
+  state.clearSince = null;
+  logLine("end", "Revision discarded. The published notice is unchanged.");
+  renderAll();
+});
+
+$("btnPublish").addEventListener("click", function () {
+  if (state.status !== "REVISING" || !renderChecks()) return;
+  state.priorSentAt = state.issuedAt;
+  state.sequence += 1;
+  state.msgType = "UPDATE";
+  state.issuedAt = state.clock;
+  state.revertTo = null;
+  state.status = "LIVE";
+  state.clearedAt = null;
+  state.clearSince = null;
+  fleet.forEach(function (v) { v.state = "normal"; v.path = null; v.holdOnExit = false; });
+  setTool(null);
+  logLine("issue", "<b>UPDATE</b> seq " + state.sequence + " &middot; " + esc(state.form.level) +
+    " &middot; " + areaKm2().toFixed(3) + " km² &middot; expires " + esc(iso(state.effectiveEnd)));
+  showTab("log");
+  renderAll();
+});
+
+$("btnExtend").addEventListener("click", function () {
+  // An EXTEND is a fresh window measured from now, not a longer version of
+  // the old one. Growing effective_end while leaving effective_start alone
+  // breaches the per-message ceiling in spec 4.3, which is the whole point
+  // of having two ceilings. original_effective_start carries the cumulative
+  // check through so the renewal loop still terminates.
+  var newStart = state.clock;
+  var newEnd = newStart + TIER.maxHours * 3600000;
+  var addedMin = Math.round((newEnd - state.effectiveEnd) / 60000);
+  var cumulative = (newEnd - state.originalStart) / 3600000;
+
+  if (addedMin < 1) {
+    logLine("warn", "<b>NO CHANGE</b> the notice already runs the full " +
+      TIER.maxHours + "h window from now. Extend once time has elapsed.");
+    return;
+  }
+  if (cumulative > 24) {
+    logLine("warn", "<b>REJECTED</b> extension would pass the " + TIER.name +
+      " cumulative ceiling of 24h from " + esc(iso(state.originalStart)) +
+      ". Issue a new notice instead.");
+    return;
+  }
+
+  state.priorSentAt = state.issuedAt;
+  state.sequence += 1;
+  state.msgType = "EXTEND";
+  state.effectiveStart = newStart;
+  state.effectiveEnd = newEnd;
+  state.issuedAt = state.clock;
+  state.clearSince = null;
+  logLine("issue", "<b>EXTEND</b> seq " + state.sequence + " &middot; +" + addedMin +
+    "m &middot; now expires " + esc(iso(state.effectiveEnd)) +
+    " &middot; " + cumulative.toFixed(1) + "h of the 24h cumulative ceiling");
+  renderAll();
+});
+
+$("btnCancel").addEventListener("click", function () {
+  state.issueToken += 1;
+  state.priorSentAt = state.issuedAt;
+  state.msgType = "CANCEL";
+  state.sequence += 1;
+  state.endedReason = "cancelled";
+  state.status = "ENDED";
+  state.issuedAt = state.clock;
+  logLine("end", "<b>CANCEL</b> seq " + state.sequence + " &middot; scene released, roadway reopened ahead of expiry");
+  fleet.forEach(function (v) { v.state = "normal"; v.path = null; v.blockedAt = null; });
+  var ct = state.issueToken;
+  setTimeout(function () { resetToDraft(ct); }, 2600);
+  renderAll();
+});
+
+function resetToDraft(token) {
+  if (token != null && token !== state.issueToken) return;   // superseded
+  if (state.status === "LIVE" || state.status === "CLEAR") return;
+  state.status = "DRAFT";
+  state.msgType = "NEW";
+  state.revertTo = null;
+  state.sequence = 1;
+  state.issuedAt = null;
+  state.effectiveStart = null;
+  state.effectiveEnd = null;
+  state.originalStart = null;
+  state.clearedAt = null;
+  state.endedReason = null;
+  logLine("end", "Console returned to draft. Adjust the zone and issue again.");
+  renderAll();
+}
+
+/* ==================================================================== *
+ * 12. Tabs, copy, speed
+ * ==================================================================== */
+
+document.querySelectorAll(".tab").forEach(function (t) {
+  t.addEventListener("click", function () { showTab(t.dataset.tab); });
+});
+
+var msgFormat = "json";
+
+document.querySelectorAll("[data-fmt]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    msgFormat = b.dataset.fmt;
+    document.querySelectorAll("[data-fmt]").forEach(function (o) {
+      o.setAttribute("aria-pressed", String(o === b));
+    });
+    $("fmt-json").hidden = msgFormat !== "json";
+    $("fmt-cap").hidden = msgFormat !== "cap";
+  });
+});
+
+$("btnCopyMsg").addEventListener("click", function () {
+  var b = this;
+  var text = msgFormat === "json" ? JSON.stringify(lastNotice, null, 2) : lastCap;
+  var done = function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, function () { b.textContent = "Select and copy"; });
+  } else {
+    b.textContent = "Select and copy";
+  }
+});
+
+/* ==================================================================== *
+ * 13. Main loop
+ * ==================================================================== */
+
+var lastTick = performance.now();
+
+function tick(now) {
+  var dtReal = Math.min(0.2, (now - lastTick) / 1000);
+  lastTick = now;
+
+  state.clock += dtReal * 1000 * state.speed;
+
+  // The fleet is the content, not decoration. Reduced motion quiets the
+  // pulsing status dot in CSS; freezing the vehicles would remove the thing
+  // the page exists to show.
+  stepFleet(dtReal * (state.speed > 1 ? 1.2 : 1) * 0.55);
+
+  // expiry releases the restriction with no further instruction from anyone
+  if ((state.status === "LIVE" || state.status === "CLEAR") && state.clock >= state.effectiveEnd) {
+    state.status = "ENDED";
+    state.endedReason = "expired";
+    fleet.forEach(function (v) { v.state = "normal"; v.path = null; v.blockedAt = null; });
+    state.issueToken += 1;
+    var xt = state.issueToken;
+    logLine("end", "<b>EXPIRED</b> restriction released automatically at " + esc(iso(state.effectiveEnd)) + ". No further message required.");
+    renderStatus();
+    setTimeout(function () { resetToDraft(xt); }, 2600);
+  }
+
+  // first sustained moment with no automated vehicle inside the zone
+  if (state.status === "LIVE" && state.clearedAt == null) {
+    var remaining = inZoneCount();
+    if (remaining > 0) state.clearSince = null;
+    else if (state.clearSince == null) state.clearSince = state.clock;
+    if (remaining === 0 && state.clock - state.clearSince > 2500 &&
+        state.clock - state.effectiveStart > 3500) {
+      state.clearedAt = state.clock;
+      state.status = "CLEAR";
+      renderStatus();
+      var blocked = fleet.filter(function (v) { return v.state === "blocked"; }).length;
+      logLine("clear", "<b>ZONE CLEAR</b> all automated vehicles out" +
+        (blocked ? ", " + blocked + " exception reported on the hotline" : ""));
+    }
+  }
+
+  if (state.status === "CLEAR" && inZoneCount() > 0) {
+    state.status = "LIVE";
+    state.clearSince = null;
+    renderStatus();
+  }
+
+  drawZone();
+  drawFleet();
+  renderReadouts();
+  renderClock();
+  requestAnimationFrame(tick);
+}
+
+/* ==================================================================== *
+ * 14. Boot
+ * ==================================================================== */
+
+drawBase();
+
+var schemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+var onScheme = function () { drawBase(); renderAll(); };
+if (schemeQuery.addEventListener) schemeQuery.addEventListener("change", onScheme);
+else if (schemeQuery.addListener) schemeQuery.addListener(onScheme);
+
+syncLevels();
+updateCounter();
+renderAll();
+requestAnimationFrame(tick);
+</script>
+
+</body>
+</html>

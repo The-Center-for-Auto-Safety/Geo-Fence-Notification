@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  CAP 1.2 rendering of examples/01-structure-fire.json, per GFN v0.1 Section 11.3.
+
+  Two things to note:
+
+  1. The area/polygon coordinate order is "latitude,longitude", which is the
+     REVERSE of the GeoJSON "[longitude, latitude]" order in the source notice.
+     This is the most common integration defect in geospatial alerting.
+
+  2. The complete signed GFN notice travels in the GFN-payload parameter. A
+     receiver MUST decode and verify that payload and treat it as authoritative.
+     The CAP elements below are a lossy, human-readable rendering.
+
+  3. No EAS-ORG parameter appears here. The source notice's channels are
+     DIRECT_API and IPAWS, not EAS, and Section 11.4 is explicit that a routine
+     geofence notice does not belong on the public alerting channels.
+-->
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>urn:gfn:us-ca-sf-fire:2026-0912-0447</identifier>
+  <sender>urn:gfn:authority:us-ca-sf-fire</sender>
+  <sent>2026-09-12T04:47:11-00:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>Geofence Notice Specification v0.1</source>
+  <scope>Public</scope>
+  <code>GFNv0.1</code>
+  <code>IPAWSv1.0</code>
+  <note>Automated vehicle operating restriction. Advisory to human drivers.</note>
+  <incidents>F26-0912-0447</incidents>
+
+  <info>
+    <language>en-US</language>
+    <category>Fire</category>
+    <category>Transport</category>
+    <event>Automated Vehicle Geofence Notice: FIRE</event>
+    <responseType>Avoid</responseType>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <audience>Automated vehicle operators</audience>
+
+    <eventCode>
+      <valueName>SAME</valueName>
+      <value>CEM</value>
+    </eventCode>
+
+    <effective>2026-09-12T04:47:11-00:00</effective>
+    <onset>2026-09-12T04:47:11-00:00</onset>
+    <expires>2026-09-12T08:47:11-00:00</expires>
+
+    <senderName>San Francisco Fire Department</senderName>
+    <headline>AV geofence: PROHIBITED on Valencia St 18th to 20th until 1:47 AM PDT</headline>
+    <description>Three-alarm structure fire with active suppression. Apparatus and hose lines across the roadway.</description>
+    <instruction>Automated vehicles must not enter or route through the area. Vehicles already inside must exit by the shortest lawful path without stopping. Trips in progress must be completed at a safe drop-off point outside the zone. Restriction expires automatically at 2026-09-12T08:47:11Z unless extended.</instruction>
+    <contact>San Francisco Fire Department Incident Commander, +14155550142</contact>
+
+    <parameter>
+      <valueName>GFN-version</valueName>
+      <value>gfn/0.1</value>
+    </parameter>
+    <parameter>
+      <valueName>GFN-restriction-level</valueName>
+      <value>PROHIBITED</value>
+    </parameter>
+    <parameter>
+      <valueName>GFN-applies-to</valueName>
+      <value>ADS_DRIVERLESS,ADS_SUPERVISED,ADS_TRUCK,SIDEWALK_ROBOT</value>
+    </parameter>
+    <parameter>
+      <valueName>GFN-on-entry</valueName>
+      <value>EXIT_VIA_NEAREST_SAFE_EGRESS</value>
+    </parameter>
+    <parameter>
+      <valueName>GFN-payload-alg</valueName>
+      <value>ES256</value>
+    </parameter>
+    <parameter>
+      <valueName>GFN-payload</valueName>
+      <value>BASE64URL-OF-COMPLETE-SIGNED-GFN-JSON-ELIDED-FOR-READABILITY</value>
+    </parameter>
+
+    <area>
+      <areaDesc>Valencia St between 18th St and 20th St, including 19th St west to Guerrero St. Covers the fire building and apparatus staging.</areaDesc>
+      <polygon>37.7615,-122.4221 37.7615,-122.4189 37.7592,-122.4189 37.7592,-122.4221 37.7615,-122.4221</polygon>
+      <geocode>
+        <valueName>SAME</valueName>
+        <value>006075</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

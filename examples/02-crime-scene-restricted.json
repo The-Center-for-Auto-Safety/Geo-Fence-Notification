@@ -1,0 +1,103 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-il-chicago-pd:2026-0903-11288",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-03T23:12:40Z",
+  "priority": 1,
+  "scope": "RESTRICTED",
+  "channels": [
+    "DIRECT_API"
+  ],
+  "ack_required": true,
+  "effective_start": "2026-09-03T23:12:40Z",
+  "effective_end": "2026-09-04T03:00:00Z",
+  "extendable": true,
+  "requestor": {
+    "agency_name": "Chicago Police Department, District 18",
+    "agency_type": "LAW_ENFORCEMENT",
+    "authority_id": "urn:gfn:authority:us-il-chicago-pd",
+    "jurisdiction": {
+      "name": "Chicago, IL",
+      "same_code": "017031"
+    },
+    "incident_number": "JH-2026-0903-11288",
+    "on_scene_callsign": "1831",
+    "contact": {
+      "hotline": "+13125550188",
+      "role": "Watch Commander"
+    }
+  },
+  "reason": {
+    "code": "CRIME_SCENE",
+    "severity": "HIGH",
+    "public_text": "Police investigation. Roadway closed to through traffic.",
+    "internal_text": "Evidence technicians working the roadway surface. Do not route vehicles across the marked area under any circumstances. Scene may not release before the Tier 1 four-hour ceiling; expect an EXTEND at sequence 2 if so.",
+    "hazard_notes": "Evidence markers and personnel in the roadway. Reduced lighting."
+  },
+  "restriction": {
+    "level": "PROHIBITED",
+    "applies_to": [
+      "ALL_AUTOMATED"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE",
+    "corridors": [
+      {
+        "name": "N Clark St, kept open northbound for transit and emergency access",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -87.6316,
+              41.9028
+            ],
+            [
+              -87.6317,
+              41.9046
+            ]
+          ]
+        },
+        "direction": "OUTBOUND"
+      }
+    ]
+  },
+  "zones": [
+    {
+      "zone_id": "scene",
+      "area_desc": "W Division St between N Wells St and N LaSalle Dr, both directions, plus the alley south of Division.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -87.6346,
+              41.90398
+            ],
+            [
+              -87.6321,
+              41.90398
+            ],
+            [
+              -87.6321,
+              41.90318
+            ],
+            [
+              -87.6346,
+              41.90318
+            ],
+            [
+              -87.6346,
+              41.90398
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLWlsLWNoaWNhZ28tcGQtMjAyNi0wMyJ9",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  }
+}

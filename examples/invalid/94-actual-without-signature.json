@@ -1,0 +1,70 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-il-chicago-pd:2026-0903-bad-04",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-03T23:12:40Z",
+  "effective_start": "2026-09-03T23:12:40Z",
+  "requestor": {
+    "agency_name": "Chicago Police Department, District 18",
+    "agency_type": "LAW_ENFORCEMENT",
+    "authority_id": "urn:gfn:authority:us-il-chicago-pd",
+    "jurisdiction": {
+      "name": "Chicago, IL",
+      "same_code": "017031"
+    },
+    "incident_number": "JH-2026-0903-BAD",
+    "contact": {
+      "hotline": "+13125550188",
+      "role": "Watch Commander"
+    }
+  },
+  "reason": {
+    "code": "CRIME_SCENE",
+    "severity": "HIGH",
+    "public_text": "Police investigation."
+  },
+  "restriction": {
+    "level": "PROHIBITED",
+    "applies_to": [
+      "ALL_AUTOMATED"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "scene",
+      "area_desc": "W Division St between N Wells St and N LaSalle Dr.",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              -87.6346,
+              41.90398
+            ],
+            [
+              -87.6321,
+              41.90398
+            ],
+            [
+              -87.6321,
+              41.90318
+            ],
+            [
+              -87.6346,
+              41.90318
+            ],
+            [
+              -87.6346,
+              41.90398
+            ]
+          ]
+        ]
+      }
+    }
+  ],
+  "effective_end": "2026-09-04T01:12:40Z"
+}

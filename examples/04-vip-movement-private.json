@@ -1,0 +1,94 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-federal-usss:2026-1104-wdc-0012",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-11-04T13:00:00Z",
+  "priority": 2,
+  "scope": "PRIVATE",
+  "addressed_operators": [
+    "urn:gfn:operator:example-av",
+    "urn:gfn:operator:example-rides",
+    "urn:gfn:operator:example-freight"
+  ],
+  "channels": [
+    "DIRECT_API"
+  ],
+  "ack_required": true,
+  "effective_start": "2026-11-04T18:30:00Z",
+  "extendable": true,
+  "freshness_window": "PT15M",
+  "requestor": {
+    "agency_name": "United States Secret Service, Washington Field Office",
+    "agency_type": "FEDERAL_GOVERNMENT",
+    "authority_id": "urn:gfn:authority:us-federal-usss",
+    "jurisdiction": {
+      "name": "United States",
+      "same_code": "011001"
+    },
+    "incident_number": "WFO-2026-1104-0012",
+    "contact": {
+      "hotline": "+12025550130",
+      "role": "Protective Operations Duty Agent"
+    }
+  },
+  "reason": {
+    "code": "DIGNITARY_PROTECTION",
+    "severity": "MEDIUM",
+    "public_text": "Temporary traffic restriction for a protective movement.",
+    "internal_text": "Motorcade movement along the corridor. Do not surface this notice, its geometry, or its timing in any rider-facing or public interface. Post-incident publication is delayed 72 hours."
+  },
+  "restriction": {
+    "level": "NO_STOP",
+    "applies_to": [
+      "ADS_DRIVERLESS",
+      "ADS_SUPERVISED",
+      "ADS_TRUCK",
+      "SIDEWALK_ROBOT",
+      "UAS"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE",
+    "exempt_operators": [
+      "urn:gfn:operator:example-transit-authority"
+    ],
+    "exempt_reason": "Contracted paratransit service operating under agency coordination."
+  },
+  "zones": [
+    {
+      "zone_id": "corridor",
+      "area_desc": "Constitution Ave NW between 15th St NW and 3rd St NW, plus one block north and south at each cross street.",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -77.0334,
+            38.8924
+          ],
+          [
+            -77.0268,
+            38.8923
+          ],
+          [
+            -77.0195,
+            38.8922
+          ],
+          [
+            -77.0127,
+            38.8921
+          ]
+        ]
+      },
+      "buffer_m": 90,
+      "altitude_min_ft": 0,
+      "altitude_max_ft": 1500,
+      "altitude_agl": true
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLWZlZGVyYWwtdXNzcy0yMDI2LTAyIn0",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  },
+  "effective_end": "2026-11-04T20:00:00Z"
+}
