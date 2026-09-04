@@ -123,9 +123,11 @@ prevents Docs autocorrect from silently curling the quotation marks inside the
 regulatory text this draft quotes verbatim.
 
 The review copies are generated, not authored. The markdown in this repository is the
-source of truth, and a `.docx` is discarded once its comments have been extracted. Do
-not treat one as a document of record, and do not edit one expecting the change to
-survive.
+source of truth. Clean copies are committed under `review-copies/` so reviewers can
+download one directly instead of waiting for an email, and a copy that comes back with
+comments on it is discarded once those comments have been extracted. Do not treat
+either as a document of record, and do not edit one expecting the change to survive.
+Regenerate them whenever a markdown source changes, or they go stale silently.
 
 Regenerate them after any edit to the markdown:
 
