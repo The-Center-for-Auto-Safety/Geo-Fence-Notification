@@ -392,6 +392,10 @@ Applies to a vehicle already inside the zone when the notice takes effect, or on
 
 Draw the zone to include **apparatus staging and hose lay**, not just the incident itself. The vehicle that blocks the ambulance is rarely the one at the address; it is the one that routed onto the street where the engines are parked.
 
+### 7.4 Locations that are not shapes
+
+`zones[].geometry` is a MUST on the direct path (11.1) and that does not change. Some jurisdictions nonetheless oblige a receiver to act on a message that identifies a place by street address or intersection rather than by geometry, with a statutory clock attached. Where a binding profile permits that, the geometry is synthesized once at the gateway, never on a vehicle, and is bounded, contained, ceiling-checked and audited as a **resolved zone**. The normative rule is drafted in `LOCATION-RESOLUTION.md` and is proposed to become this section in v0.2. Until the schema and validator carry it, a notice reaching a receiver without geometry remains a `MALFORMED_GEOMETRY` rejection. See 14.12 and SECURITY-REVIEW L5.
+
 ---
 
 ## 8. Vehicle behavior
@@ -531,7 +535,7 @@ The threat that matters most is not a hacker stopping one car. It is a forged no
 - Algorithm MUST be `ES256` (ECDSA P-256, SHA-256). `none` and all HMAC algorithms MUST be rejected.
 - The JOSE header MUST include `x5c` with a certificate chain to a registry root, or `kid` resolvable through the registry.
 - The certificate subject MUST equal `requestor.authority_id`. A mismatch is a rejection, not a warning.
-- Certificates SHOULD have lifetimes of one year or less, and the registry MUST publish revocation (OCSP or a signed CRL refreshed at least hourly).
+- Certificates SHOULD have lifetimes of one year or less, and the registry MUST publish revocation (OCSP or a signed CRL refreshed at least hourly). **Known conflict:** an hourly CRL cannot satisfy 10.3's requirement that credentials be revocable within 15 minutes, and the two numbers have been inconsistent since the first draft. v0.2 must choose: OCSP against the issuing root with the responder URL carried in the trust list, a push mechanism, or an honest restatement of 10.3's window. SECURITY-REVIEW L7.
 - On constrained transports, COSE_Sign1 (RFC 9052) over a CBOR encoding MAY substitute for JWS. The signed content is semantically identical.
 
 ### 10.2 Replay and freshness
@@ -774,7 +778,7 @@ An implementation claiming **GFN v0.1 Receiver** conformance MUST:
 
 ## 14. Open questions for v0.2
 
-1. **Registry governance.** Who runs the credential registry, and how does a 12-person police department in a rural county get a certificate? Federal (NHTSA or FEMA/IPAWS), state, or a federated model. This is the hardest unsolved piece.
+1. **Registry governance.** Resolved in direction, open in execution. See `REGISTRY-GOVERNANCE.md`. The word "registry" carries five separate jobs in this document: credential issuance and revocation (10.1, 10.3), tier assignment (5.3), jurisdiction boundaries and mutual aid (5.4), the receiver directory and feed access control (9, 11.1), and the published callback number (11.6). The first four and the fifth divide cleanly by constituency: roughly 47,000 issuing agencies against tens of receivers. They are therefore two registries. The **receiver directory** belongs with the state AV regulator, which already licenses these entities and holds the enforcement lever, with a national floor set by a NHTSA standing general order rather than by rulemaking. The **issuer registry** federates: states credential their own agencies under a common certificate policy, and a member-governed national body publishes the trust list receivers consume, on the model of AAMVA's mDL Digital Trust Service. An agency holding an IPAWS COG is treated as already credentialed, as an interim measure that ships before the federation exists. What remains genuinely open is the certificate policy, the cross-state mutual-aid countersignature (SECURITY-REVIEW L10), the cached-trust-list availability behavior (L8), and the 10.1 / 10.3 revocation conflict (L7).
 2. **Lane-level restriction.** Closing one direction of one street is common and today requires an awkwardly thin polygon. A proper linear-referencing binding, borrowing from WZDx 4.2 road event structure, would handle it cleanly and would let GFN and work zone feeds share tooling.
 3. **Bidirectional status.** Should an operator publish live vehicle counts inside an active zone back to the incident commander? Operationally valuable, and a meaningful surveillance and competitive-intelligence concern.
 4. **Standing zones.** Recurring restrictions (a school pickup loop, a weekly farmers market) are currently many separate notices. A recurrence rule would help, at the cost of weakening the mandatory-expiry property in 4.2.
@@ -785,6 +789,7 @@ An implementation claiming **GFN v0.1 Receiver** conformance MUST:
 9. **Notice-delivery topology.** Endpoint discovery, feed redundancy, and a registry-hosted aggregate feed are all unspecified, so a single small agency's endpoint is a single point of failure for every notice it issues. Notice suppression is a top-tier threat in Section 10 and v0.1 does not defend against it.
 10. **Detached claims for sensitive text.** `internal_text` is inside the signed body, so confidentiality and authenticity are in direct conflict (10.4). A per-field encryption or detached-claims construction would resolve it.
 11. **Non-road automation.** `UAS` and `SIDEWALK_ROBOT` are in `applies_to` and the altitude fields exist, but neither is fully worked through. UAS restrictions already have an established path through FAA UAS Data Exchange, and GFN should map to it rather than compete.
+12. **Location resolution, and jurisdictions that do not require geometry.** 7.1 makes `zones[].geometry` a MUST, and every area ceiling in 5.3 and the whole of 5.4's containment test depend on it. California's 13 CCR 227.02(cc) accepts a conforming geofencing message that identifies a location by "a street address, intersection, coordinates, or any other reasonable and customary way," with a mandatory two-minute fleet action attached. A conforming real-world message may therefore carry no shape, and the specification's two most load-bearing controls have nothing to evaluate. `LOCATION-RESOLUTION.md` drafts the rule, ready to merge here as 7.4. It is not yet enforceable: the schema's top-level `additionalProperties: false` forbids the `location_resolution` audit block, the validator does not check the resolved-area ceiling, and there are no regression cases. SECURITY-REVIEW L5.
 
 ---
 
@@ -804,7 +809,9 @@ An implementation claiming **GFN v0.1 Receiver** conformance MUST:
 | **Corridor** | A street kept open through a restricted zone, treated as `NO_STOP` regardless of the notice's level (6.4, 8.2). |
 | **Dispersed egress** | Spreading exiting vehicles across available exits rather than each minimizing its own distance (8.3). |
 | **Detached signature** | A signature transmitted separately from the bytes it covers, so the payload is the HTTP body rather than a copy inside the signature (10.1). |
-| **Registry** | The credential authority that issues and revokes signing certificates and holds jurisdiction boundaries and tiers. Does not yet exist (14). |
+| **Issuer Registry** | The credential authority for issuing agencies: issues and revokes signing certificates, assigns tier, holds jurisdiction boundaries and mutual-aid flags, and publishes the callback numbers 11.6 relies on. Does not yet exist. Governance direction in `REGISTRY-GOVERNANCE.md`; open items at 14.1. |
+| **Receiver Directory** | The register of covered entities that receive notices: their notice-ingestion endpoints, contacts of record, and the operator credentials the 11.1 feed endpoints authenticate. Distinct from the Issuer Registry in population, vetting, and enforcement lever. Does not yet exist (14.1, 14.9). |
+| **Resolved zone** | A zone whose geometry was synthesized by a gateway from a non-geometric location identifier rather than drawn by the issuer. Permitted only where a binding profile allows it, and bounded by `LOCATION-RESOLUTION.md` (14.12). |
 
 ### Acronyms and standards
 
