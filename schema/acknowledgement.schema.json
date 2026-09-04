@@ -16,22 +16,35 @@
     "signature"
   ],
   "properties": {
-    "spec_version": { "const": "gfn/0.1" },
-    "type": { "const": "ACK" },
+    "spec_version": {
+      "const": "gfn/0.1"
+    },
+    "type": {
+      "const": "ACK"
+    },
     "notice_id": {
       "type": "string",
       "pattern": "^urn:gfn:[a-z0-9][a-z0-9._-]*:[A-Za-z0-9][A-Za-z0-9._:-]*$",
       "maxLength": 200
     },
-    "sequence": { "type": "integer", "minimum": 1 },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
     "operator_id": {
       "type": "string",
       "pattern": "^urn:gfn:operator:[a-z0-9][a-z0-9._-]*$",
       "maxLength": 200
     },
-    "received_at": { "$ref": "#/$defs/rfc3339Utc" },
+    "received_at": {
+      "$ref": "#/$defs/rfc3339Utc"
+    },
     "disposition": {
-      "enum": ["ACCEPTED", "ACCEPTED_WITH_EXCEPTIONS", "REJECTED"]
+      "enum": [
+        "ACCEPTED",
+        "ACCEPTED_WITH_EXCEPTIONS",
+        "REJECTED"
+      ]
     },
     "rejection_code": {
       "enum": [
@@ -43,26 +56,49 @@
         "LEVEL_NOT_PERMITTED_FOR_TIER",
         "MALFORMED_MESSAGE",
         "MALFORMED_GEOMETRY",
+        "LOCATION_NOT_RESOLVABLE",
+        "AMBIGUOUS_LOCATION",
         "STALE_SEQUENCE",
         "EXPIRED",
         "UNSUPPORTED_VERSION"
       ]
     },
-    "rejection_detail": { "type": "string", "maxLength": 500 },
-    "vehicles_in_zone_at_receipt": { "type": "integer", "minimum": 0 },
-    "routing_updated_at": { "$ref": "#/$defs/rfc3339Utc" },
-    "estimated_clear_at": { "$ref": "#/$defs/rfc3339Utc" },
-    "actual_clear_at": { "$ref": "#/$defs/rfc3339Utc" },
-    "trips_diverted": { "type": "integer", "minimum": 0 },
+    "rejection_detail": {
+      "type": "string",
+      "maxLength": 500
+    },
+    "vehicles_in_zone_at_receipt": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "routing_updated_at": {
+      "$ref": "#/$defs/rfc3339Utc"
+    },
+    "estimated_clear_at": {
+      "$ref": "#/$defs/rfc3339Utc"
+    },
+    "actual_clear_at": {
+      "$ref": "#/$defs/rfc3339Utc"
+    },
+    "trips_diverted": {
+      "type": "integer",
+      "minimum": 0
+    },
     "exceptions": {
       "type": "array",
       "maxItems": 200,
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["vehicle_id", "reason"],
+        "required": [
+          "vehicle_id",
+          "reason"
+        ],
         "properties": {
-          "vehicle_id": { "type": "string", "maxLength": 80 },
+          "vehicle_id": {
+            "type": "string",
+            "maxLength": 80
+          },
           "reason": {
             "enum": [
               "PHYSICALLY_BLOCKED",
@@ -81,23 +117,40 @@
           "location": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["type", "coordinates"],
+            "required": [
+              "type",
+              "coordinates"
+            ],
             "properties": {
-              "type": { "const": "Point" },
+              "type": {
+                "const": "Point"
+              },
               "coordinates": {
                 "type": "array",
                 "minItems": 2,
                 "maxItems": 3,
                 "prefixItems": [
-                  { "type": "number", "minimum": -180, "maximum": 180 },
-                  { "type": "number", "minimum": -90, "maximum": 90 },
-                  { "type": "number" }
+                  {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  {
+                    "type": "number"
+                  }
                 ],
                 "items": false
               }
             }
           },
-          "expected_clear_at": { "$ref": "#/$defs/rfc3339Utc" }
+          "expected_clear_at": {
+            "$ref": "#/$defs/rfc3339Utc"
+          }
         }
       }
     },
@@ -105,23 +158,38 @@
       "type": "object",
       "description": "Detached JWS over the RFC 8785 canonicalization of this object with 'signature' removed, signed by the operator's registered key. Without it a forged ACCEPTED tells an incident commander the zone is clear of automated vehicles when it is not, and forged rejections pull the commander into phone calls during the first minutes of an incident.",
       "additionalProperties": false,
-      "required": ["protected", "signature"],
+      "required": [
+        "protected",
+        "signature"
+      ],
       "properties": {
-        "protected": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" },
-        "signature": { "type": "string", "pattern": "^[A-Za-z0-9_-]+$" }
+        "protected": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]+$"
+        }
       }
     },
     "contact": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["hotline"],
+      "required": [
+        "hotline"
+      ],
       "properties": {
         "hotline": {
           "type": "string",
           "pattern": "^\\+[1-9][0-9]{6,14}$",
           "description": "E.164. The operator's 24/7 number for public officials."
         },
-        "email": { "type": "string", "format": "email", "maxLength": 200 }
+        "email": {
+          "type": "string",
+          "format": "email",
+          "maxLength": 200
+        }
       }
     }
   },
@@ -129,30 +197,63 @@
     {
       "description": "A rejection must say why.",
       "if": {
-        "properties": { "disposition": { "const": "REJECTED" } },
-        "required": ["disposition"]
+        "properties": {
+          "disposition": {
+            "const": "REJECTED"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
       },
-      "then": { "required": ["rejection_code"] }
+      "then": {
+        "required": [
+          "rejection_code"
+        ]
+      }
     },
     {
       "description": "A clean ACCEPTED must not smuggle non-compliant vehicles past the issuer's dashboard.",
       "if": {
-        "properties": { "disposition": { "const": "ACCEPTED" } },
-        "required": ["disposition"]
+        "properties": {
+          "disposition": {
+            "const": "ACCEPTED"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
       },
       "then": {
-        "properties": { "exceptions": { "type": "array", "maxItems": 0 } }
+        "properties": {
+          "exceptions": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
       }
     },
     {
       "description": "ACCEPTED_WITH_EXCEPTIONS must list them.",
       "if": {
-        "properties": { "disposition": { "const": "ACCEPTED_WITH_EXCEPTIONS" } },
-        "required": ["disposition"]
+        "properties": {
+          "disposition": {
+            "const": "ACCEPTED_WITH_EXCEPTIONS"
+          }
+        },
+        "required": [
+          "disposition"
+        ]
       },
       "then": {
-        "required": ["exceptions"],
-        "properties": { "exceptions": { "minItems": 1 } }
+        "required": [
+          "exceptions"
+        ],
+        "properties": {
+          "exceptions": {
+            "minItems": 1
+          }
+        }
       }
     }
   ],

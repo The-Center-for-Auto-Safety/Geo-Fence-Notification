@@ -1,0 +1,77 @@
+{
+  "spec_version": "gfn/0.1",
+  "notice_id": "urn:gfn:us-ca-sf-fire:2026-0912-0452",
+  "sequence": 1,
+  "msg_type": "NEW",
+  "status": "ACTUAL",
+  "issued_at": "2026-09-12T04:51:00Z",
+  "priority": 1,
+  "scope": "PUBLIC",
+  "channels": [
+    "DIRECT_API"
+  ],
+  "ack_required": true,
+  "effective_start": "2026-09-12T04:51:00Z",
+  "extendable": true,
+  "freshness_window": "PT15M",
+  "requestor": {
+    "agency_name": "San Francisco Fire Department",
+    "agency_type": "FIRE_EMS",
+    "authority_id": "urn:gfn:authority:us-ca-sf-fire",
+    "jurisdiction": {
+      "name": "San Francisco, CA",
+      "same_code": "006075"
+    },
+    "incident_number": "F26-0912-0447",
+    "on_scene_callsign": "Battalion 2",
+    "contact": {
+      "hotline": "+14155550142",
+      "role": "Incident Commander",
+      "email": "ops-desk@example-sffd.gov"
+    }
+  },
+  "reason": {
+    "code": "FIRE",
+    "severity": "HIGH",
+    "public_text": "Medical aid call with apparatus in the roadway. Keep the intersection clear."
+  },
+  "restriction": {
+    "level": "AVOID",
+    "applies_to": [
+      "ADS_DRIVERLESS",
+      "ADS_SUPERVISED"
+    ],
+    "on_entry_behavior": "EXIT_VIA_NEAREST_SAFE_EGRESS",
+    "occupant_policy": "COMPLETE_TRIP_OUTSIDE_ZONE"
+  },
+  "zones": [
+    {
+      "zone_id": "z1",
+      "area_desc": "Resolved from \"the Valencia corridor around 19th\". A 400 m radius circle, which is a district-sized guess dressed as an intersection.",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -122.4213,
+          37.7603
+        ]
+      },
+      "buffer_m": 400,
+      "location_resolution": {
+        "source_text": "the Valencia corridor around 19th",
+        "identifier_type": "OTHER",
+        "source_channel": "API",
+        "resolver": {
+          "name": "example-gateway-geocoder",
+          "version": "2.4.1"
+        },
+        "resolved_at": "2026-09-12T04:47:14Z",
+        "candidate_count": 1
+      }
+    }
+  ],
+  "signature": {
+    "protected": "eyJhbGciOiJFUzI1NiIsImtpZCI6InVzLWNhLXNmLWZpcmUtMjAyNi0wMSJ9",
+    "signature": "PLACEHOLDER-detached-JWS-over-RFC8785-canonicalization-ES256"
+  },
+  "effective_end": "2026-09-12T06:51:00Z"
+}

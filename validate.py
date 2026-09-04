@@ -82,6 +82,14 @@ TIERS = {
 # ceilings rather than the permissive ones.
 PROHIBITIVE_LEVELS = {"PROHIBITED", "NO_DRIVERLESS"}
 
+# LOCATION-RESOLUTION.md R-6. A resolved zone is geometry the receiver
+# synthesized from prose the issuer supplied, so its size is a guess the
+# receiver made, not a boundary the issuer drew. 250 m is about 0.196 km2,
+# an order of magnitude under the 2 km2 Tier 1 ceiling, which means the
+# ceiling does its work before the tier table is consulted rather than after,
+# and the worst case for a bad location string is one intersection.
+RESOLVED_BUFFER_MAX_M = 250
+
 
 def tier_for(agency_type, reason_code):
     """Section 5.3. Tier is derived, never asserted in the message."""
@@ -454,12 +462,52 @@ def semantic_checks(notice):
     texts += [("restriction.corridors[].name", c["name"])
               for c in notice["restriction"].get("corridors", [])]
     texts.append(("manual_entry.notes", notice.get("manual_entry", {}).get("notes")))
+    texts += [(f"zones[{z['zone_id']}].location_resolution.source_text",
+               z["location_resolution"].get("source_text"))
+              for z in notice["zones"] if "location_resolution" in z]
     for label, text in texts:
         if not text:
             continue
         for pat, kind in PII_PATTERNS:
             if pat.search(text):
                 errs.append(f"{label} may contain PII: {kind}")
+
+    # 7.4 / LOCATION-RESOLUTION.md. Checks a validator can actually run without a
+    # registry or a geocoder: the R-6 ceiling, the R-4 shape, the R-12 record of a
+    # human disambiguation, and R-15. R-9 containment and R-11 resolvability need
+    # a registry and a resolver, so they stay out for the same reason signature
+    # verification does (Section 13).
+    resolved = [z for z in notice["zones"] if "location_resolution" in z]
+    for z in resolved:
+        lr = z["location_resolution"]
+        gtype = z["geometry"]["type"]
+        if gtype not in ("Point", "LineString"):
+            errs.append(
+                f"zone {z['zone_id']}: resolved zone geometry is {gtype}; "
+                "R-4 permits Point or LineString only"
+            )
+        buf = z.get("buffer_m")
+        if buf is not None and buf > RESOLVED_BUFFER_MAX_M:
+            errs.append(
+                f"zone {z['zone_id']}: resolved buffer {buf:g} m exceeds the "
+                f"{RESOLVED_BUFFER_MAX_M} m ceiling in R-6"
+            )
+        if lr.get("candidate_count", 1) > 1 and not lr.get("disambiguation"):
+            errs.append(
+                f"zone {z['zone_id']}: {lr['candidate_count']} candidates found and no "
+                "disambiguation recorded; R-13 forbids selecting by rank or confidence"
+            )
+    # R-15. An unverified string, an area the receiver chose, and a total closure
+    # is the whole attack in one message. The callback is the only control that
+    # reaches it.
+    if resolved and level in PROHIBITIVE_LEVELS:
+        method = notice.get("manual_entry", {}).get("verification_method")
+        if method != "CALLBACK_TO_PUBLISHED_NUMBER":
+            errs.append(
+                f"level {level} on a resolved zone requires manual_entry."
+                "verification_method CALLBACK_TO_PUBLISHED_NUMBER (R-15), "
+                f"got {method or 'none'}"
+            )
 
     # 3.1 sequence and references coherence
     if notice["msg_type"] in ("UPDATE", "CANCEL", "EXTEND") and notice["sequence"] < 2:

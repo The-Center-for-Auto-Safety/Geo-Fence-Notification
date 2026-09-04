@@ -1,6 +1,6 @@
 # Location resolution
 
-**Status:** Normative draft, proposed as GFN specification section 7.4 for v0.2. Written 2026-09-04.
+**Status:** Normative, enforced. Proposed as GFN specification section 7.4 for v0.2. Written and implemented 2026-09-04.
 **Closes:** SECURITY-REVIEW finding L5. Blocks `PROFILE-CALIFORNIA.md`.
 **Depends on:** GFN-0.1-specification.md sections 5.3, 5.4, 7.1, 7.2, 8.4, 9, 11.6, 12.
 
@@ -75,6 +75,8 @@ R-6 is the load-bearing number in this document. It sits an order of magnitude b
 
 **R-12.** If it resolves to more than one candidate within that jurisdiction, the receiver MUST reject with `AMBIGUOUS_LOCATION` and MUST include every candidate it found in `exceptions[].detail`, so the issuer can pick one rather than guess again.
 
+Where the issuer then picks one, the notice that follows carries `candidate_count` greater than 1 and MUST record how it was settled in `location_resolution.disambiguation`. That field exists so that a multi-candidate resolution is either a rejection or a recorded human decision, and never a silent selection.
+
 **R-13.** A receiver MUST NOT select among candidates by rank, confidence score, proximity, or population. Geocoders return ranked guesses and they are usually right, which is precisely the problem: a resolver that is right 98 percent of the time closes the wrong block roughly once every fifty incidents, silently, with statutory force behind it.
 
 **R-14.** A rejection under R-11 or R-12 is not a refusal to cooperate, and Section 9's rule applies unchanged: it MUST reach a human at both ends inside the 8.4 budget. In a jurisdiction with a statutory response clock, a rejection stops the clock only if the issuer receives it, which is why R-14 is a MUST rather than a SHOULD.
@@ -93,7 +95,9 @@ Without R-16, resolution becomes an area-escalation primitive: issue against a v
 
 ### 3.9 Audit
 
-**R-17.** A resolved notice MUST carry a `location_resolution` block recording, at minimum: the verbatim source string as received, the identifier type the resolver classified it as, the resolver's name and version, the resolution timestamp, the buffer radius applied, the number of candidates found, and the channel the identifier arrived on.
+**R-17.** A resolved zone MUST carry a `zones[].location_resolution` block recording, at minimum: the verbatim source string as received, the identifier type the resolver classified it as, the resolver's name and version, the resolution timestamp, and the number of candidates found. The channel the identifier arrived on SHOULD also be recorded.
+
+The block is per zone rather than per notice, decided during implementation. A notice may mix a drawn zone with a resolved one, and the audit question is always about a particular geometry: who chose this shape. Attaching the record to the zone also means the schema can require a resolved zone to be a circle or a buffered line without constraining the rest of the notice.
 
 **R-18.** The public register (12) and every audit log MUST present a resolved zone as derived, not as issued. `area_desc` for a resolved zone MUST state that the geometry was synthesized and MUST quote the source string.
 
@@ -116,10 +120,25 @@ Two additions to the `rejection_code` enum in `schema/acknowledgement.schema.jso
 
 ## 5. Implementation status
 
-This rule is specified but not yet enforceable, and the repository is deliberately consistent rather than half-changed. Three pieces of work make it real:
+**Implemented 2026-09-04.** The rule is enforced, not just written.
 
-1. **Schema.** `geofence-notice.schema.json` has `additionalProperties: false` at the top level, so `location_resolution` must be added there before any conforming notice can carry it. Add the two rejection codes to the acknowledgement schema at the same time.
-2. **Validator.** `validate.py` gains the R-6 ceiling check, the R-8 ceiling contribution, and a check that a resolved zone at a prohibitive level carries the 11.6 verification (R-15). R-9 through R-14 need a registry and a resolver, so they stay outside the reference validator for the same reason signature verification does, per Section 13.
-3. **Regression cases.** At minimum: a resolved zone over the 250 m ceiling, a resolved `PROHIBITED` without callback verification, and an `EXTEND` that enlarges a resolved zone. These belong in `examples/invalid/` alongside the existing nine.
+**Schema.** `$defs.locationResolution` added to `geofence-notice.schema.json`, referenced from `$defs.zone.properties.location_resolution`. Required: `source_text`, `identifier_type`, `resolver` (name and version), `resolved_at`, `candidate_count`. Optional: `source_channel`, `disambiguation`. Two conditionals enforce the rule: `candidate_count` of 2 or more requires `disambiguation` (R-12, R-13), and the presence of `location_resolution` constrains the zone to `Point` or `LineString` geometry with `buffer_m` required and capped at 250 (R-4, R-6). The 250 cap is expressed as a per-zone override of the general 5000 m buffer maximum, so a resolved zone cannot reach the ordinary limit. `AMBIGUOUS_LOCATION` and `LOCATION_NOT_RESOLVABLE` added to the `rejection_code` enum in `acknowledgement.schema.json`.
 
-Until then, `validate.py` continues to report all 16 examples behaving as expected, and this document is a design commitment rather than an enforced one.
+**Validator.** `RESOLVED_BUFFER_MAX_M = 250` and a resolution block in `semantic_checks` covering R-4, R-6, R-13 and R-15. The verbatim `source_text` is also run through the 6.1 free-text hygiene checks, because it is caller-supplied prose that lands in a three-year record: a dispatcher who reads a licence plate or a name into the phone should not have it laundered into the audit trail through the location field.
+
+R-4, R-6 and R-13 are enforced by the schema first and by the validator second. That redundancy is deliberate. `validate.py` is the reference implementation a receiver reads to understand what to build, and a receiver that validates against the schema alone still needs the checks in a form it can port. Both paths were exercised directly to confirm neither is dead code.
+
+R-9 containment, R-11 resolvability, R-14 rejection delivery, R-16 non-enlargement on `EXTEND`, and R-17's audit completeness are outside the reference validator. The first two need a registry and a resolver, the third needs a delivery path, and the fourth needs cross-message state, all for the same reasons Section 13 gives for signature verification.
+
+**Regression cases.** Four new examples, and the suite reports all 20 behaving as expected:
+
+| File | What it exercises |
+|---|---|
+| `examples/09-resolved-intersection.json` | The positive case. A resolved intersection at `AVOID`, 100 m buffer, one candidate, 0.031 km² against a Tier 1 ceiling of 2 km² |
+| `examples/invalid/100-resolved-buffer-over-ceiling.json` | R-6. A 400 m radius resolved from "the Valencia corridor around 19th", which is a district-sized guess dressed as an intersection |
+| `examples/invalid/101-resolved-prohibited-without-callback.json` | R-15. A total closure over synthesized geometry, from a voice call verified only as `KNOWN_CONTACT` |
+| `examples/invalid/102-resolved-ambiguous-no-disambiguation.json` | R-12 and R-13. Three candidates matched "the Safeway on Market" and the resolver took the highest ranked one |
+
+Each fails for exactly one reason, which is the property that makes a regression case worth keeping.
+
+**Still outstanding.** R-16 needs the cross-message state that Section 13 already identifies as missing, so an `EXTEND` that enlarges a resolved zone is specified as forbidden and not yet detectable. That is the one rule here with no test behind it, and it should be first in line whenever cross-message validation arrives.
