@@ -29,6 +29,8 @@ Designed so one notice can be authored once and delivered over a direct API, IPA
 | `PROFILE-CALIFORNIA.md` | Binding to Cal. Veh. Code 38751 and 13 CCR Articles 3.7 and 3.8. Four assurance levels, ceilings for each, the two-minute clock, and what a manufacturer hands an agency under 228.08(c)(10)(F). |
 | Glossary | Appendix A of the specification defines every acronym and term of art. `MESSAGE-FLOW.md` carries its own, and `EXECUTIVE-SUMMARY.md` a plain-language one for a command audience. |
 | `validate.py` | Validates every example against the schema plus the semantic rules the schema cannot express. |
+| `tools/` | `make-review-docs.py` generates the Word review copies; `extract-comments.py` reads reviewer comments back out of them. `reference.docx` is the Word template both use. |
+| `review-copies/` | Generated `.docx` of each document, for reviewers who would rather comment in Word. Regenerate after any edit; never edit one as a source. |
 | `demo/dispatcher-console.html` | A working demonstration console: a fire department draws a geofence, issues it, and a simulated automated vehicle fleet clears the zone. Open it in a browser, no build step and no network needed. |
 
 ## Running the validator
@@ -82,6 +84,84 @@ A notice answers five things in a form both a fire captain and a routing planner
 **Stopping instead of leaving.** The default `on_entry_behavior` is `EXIT_VIA_NEAREST_SAFE_EGRESS`, not "stop." A vehicle that halts where it stands when a geofence turns on is a vehicle abandoned in a fire lane, which is the exact behavior NHTSA cited in July 2026.
 
 **Broadcasting to the public.** Do not route routine geofence notices to EAS or WEA. Section 11.4. Alert fatigue is a measured public safety harm, and a notice telling robotaxis to avoid two blocks is not a public emergency.
+
+## How to comment on this draft
+
+Everything here is a draft for comment. There are three ways to give feedback, and
+they all end up in the same place. Pick whichever costs you the least.
+
+### 1. Reply in plain language, quoting the rule number
+
+The lowest-friction option, and a perfectly good one. Nearly every reviewable statement
+in these documents carries a stable identifier: `P-1` to `P-22` in the California profile,
+`R-1` to `R-19` in the location resolution rule, `C1` / `H4` / `M7` / `L5` in the security
+review, `G1` to `G10` in the registry governance analysis, and numbered sections
+everywhere else. Quote the identifier and say what is wrong:
+
+> P-6, one hour is too short for a working structure fire. Make it two.
+
+That is a complete review comment. Send it by email or open a GitHub issue. Nothing
+else is required, and a comment in this form is treated exactly the same as one left
+in a document.
+
+### 2. Comment in the Word review copies
+
+`review-copies/` holds a `.docx` of each document, generated from the markdown. Open one,
+select the text, choose **Review > New Comment**, and type. To propose exact wording,
+turn on **Review > Track Changes** and edit the text directly.
+
+These files work in Word on Mac and Windows, in the free Word Online, in Apple Pages,
+and in Google Docs, all of which read and write `.docx` comments.
+
+**One shared copy beats five emailed copies.** Put a single file in whatever shared
+drive the group already uses (SharePoint, OneDrive, Google Drive, Dropbox) and give the
+reviewers commenting access to that one file. Reviewers then see each other's comments,
+which halves the volume, because the second person to reach a rule either backs the first
+comment or argues with it instead of writing it again. If you upload to Google Drive,
+share as **Commenter** rather than Editor: commenting is all that is needed, and it
+prevents Docs autocorrect from silently curling the quotation marks inside the
+regulatory text this draft quotes verbatim.
+
+The review copies are generated, not authored. The markdown in this repository is the
+source of truth, and a `.docx` is discarded once its comments have been extracted. Do
+not treat one as a document of record, and do not edit one expecting the change to
+survive.
+
+Regenerate them after any edit to the markdown:
+
+```
+python3 tools/make-review-docs.py
+```
+
+Collect the comments from returned files:
+
+```
+python3 tools/extract-comments.py review-copies/*.docx
+```
+
+That prints every comment with its author, date, the text it was anchored to, and the
+nearest rule identifier, sorted so that all five reviewers' comments on `P-6` appear
+together.
+
+### 3. Review on GitHub
+
+For anyone comfortable with it, this is the least work for everybody. Reviewers need
+only the **Read** role on the repository, which is enough to submit reviews and comment
+on specific lines of a pull request, and does not permit pushing, merging, or applying
+suggestions. Comments anchor to lines, thread, and resolve, and nothing has to be merged
+by hand afterwards.
+
+### What not to use
+
+Do not leave comments as HTML comments (`<!-- like this -->`) in the markdown. They are
+invisible in every rendered view, so no other reviewer can see them and the same
+objection arrives several times.
+
+Do not make a Google Doc the master copy. As a place for five people to leave comments
+on a generated copy it is fine, and better than five separate emailed files. As the
+document of record it is not: round-tripping these tables and code blocks back to
+markdown loses fidelity every trip, and the exact regulatory quotations in
+`PROFILE-CALIFORNIA.md` do not survive an editor that curls quotation marks.
 
 ## Status
 

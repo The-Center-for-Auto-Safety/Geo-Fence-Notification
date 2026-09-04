@@ -12,3 +12,7 @@ brief/thumbnails*.jpg
 
 # Local scratch
 *.bak
+
+# Generated Word review copies, rebuilt by tools/make-review-docs.py
+review-copies/*.docx
+review-copies/*.pdf

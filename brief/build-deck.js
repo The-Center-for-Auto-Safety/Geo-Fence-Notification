@@ -219,18 +219,20 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
  * ================================================================== */
 {
   const s = lightSlide();
-  heading(s, "Where things stand", "Washington has moved. The mechanism has not been written.");
+  heading(s, "Where things stand", "California already requires it. Nobody has written what it is.");
 
   const events = [
+    { d: "28 APR 2026", t: "California DMV rules take effect",
+      b: "New testing and deployment regulations. First responder interaction plans reviewed annually, remote support reachable in 30 seconds.", c: C.fleet },
+    { d: "1 JUL 2026", t: "A two-minute duty becomes law",
+      b: "Vehicle Code 38751: an emergency response official may issue an emergency geofencing message, and the manufacturer must direct its fleet to leave or avoid the area within two minutes. In force today.", c: C.agency },
     { d: "8 JUL 2026", t: "NHTSA calls it a functional insufficiency",
-      b: "Administrator Morrison to AV developers: an automated vehicle that cannot safely interact with first responders is a danger to the general public. Remediation plans due in three weeks.", c: C.agency },
-    { d: "17 JUL 2026", t: "First recall on emergency-response grounds",
-      b: "105 vehicles recalled after one drove into a smoke-obscured fire ground.", c: C.warn },
-    { d: "3 AUG 2026", t: "H.R. 10033 introduced",
-      b: "The AV Emergency Response Coordination Act would give you a 24/7 hotline answered in 30 seconds, and the authority to issue a geofence notice that operators must comply with in 2 minutes.", c: C.fleet }
+      b: "To AV developers: a vehicle that cannot safely interact with first responders is a danger to the general public. Remediation plans due in three weeks.", c: C.warn },
+    { d: "28 JUL 2026", t: "H.R. 10033 introduced",
+      b: "The AV Emergency Response Coordination Act would take the same idea national. Introduced, not passed.", c: C.fleet }
   ];
 
-  let y = 2.02;
+  let y = 1.94;
   events.forEach((e) => {
     s.addShape(pres.ShapeType.ellipse, {
       x: M + 0.02, y: y + 0.14, w: 0.3, h: 0.3,
@@ -249,16 +251,16 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     s.addText(e.b, {
       x: M + 2.28, y: y + 0.48, w: 9.9, h: 0.76,
       isTextBox: true, margin: 0, valign: "top",
-      fontFace: F.body, fontSize: 13.5, lineSpacing: 19, color: C.onLightMu
+      fontFace: F.body, fontSize: 12.5, lineSpacing: 17, color: C.onLightMu
     });
-    y += 1.38;
+    y += 1.06;
   });
 
   s.addShape(pres.ShapeType.roundRect, {
     x: M, y: 6.24, w: W - 2 * M, h: 0.64, rectRadius: 0.06,
     fill: { color: C.paperAlt }, line: { color: "DED8D1", width: 1 }
   });
-  s.addText("The bill would give NHTSA two years to write the rules, and it has not passed. What happens in the meantime is being decided now.", {
+  s.addText("This is no longer a question of whether the authority arrives. In California it arrived on 1 July. What a geofencing message actually is remains undefined, and that is what is being decided now.", {
     x: M + 0.3, y: 6.38, w: W - 2 * M - 0.6, h: 0.42,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.body, fontSize: 14, italic: true, color: C.onLight
@@ -267,9 +269,9 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
   footnote(s, "");
 
   s.addNotes(
-    "The point of this slide is that the authority is arriving whether or not the fire service participates in shaping it.\n\n" +
-    "H.R. 10033 is the important one. Read the two numbers out loud: hotline answered in 30 seconds, geofence notice complied with in 2 minutes. Those are real obligations on operators.\n\n" +
-    "Note the bill was introduced 3 August 2026 and has not passed. Do not overstate it."
+    "The 1 July line is the one that changed this briefing. Slow down on it. This is not a proposal any more, it is California law, and the duty is on the manufacturer.\n\n" +
+    "Read the number out loud: two minutes. Then say the part that matters to this room, which is that the law does not say how the manufacturer knows the message came from you.\n\n" +
+    "H.R. 10033 was introduced 28 July 2026 and has not passed. Do not overstate it. If asked when federal rules land: the bill gives NHTSA 180 days after enactment, and NHTSA rulemaking averages about five years. Do not wait for it."
   );
 }
 
@@ -278,20 +280,20 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
  * ================================================================== */
 {
   const s = darkSlide();
-  heading(s, "The gap", "The bill grants the authority. It does not say what a notice is.", true);
+  heading(s, "The gap", "The law grants the authority. It does not say what a notice is.", true);
 
-  s.addText("“a request issued by a first responder or other Federal, State, Tribal, or local government or agency to a covered entity to have its covered vehicles avoid a geographic area for up to 72 hours”", {
+  s.addText("“a message using commonly available communication methods to identify a location using a street address, intersection, coordinates, or any other reasonable and customary way of identifying a location, that directs an autonomous vehicle to leave or avoid an area because of an emergency”", {
     x: M, y: 2.02, w: 7.5, h: 1.5,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.head, fontSize: 19, italic: true, lineSpacing: 28, color: C.onDark
   });
-  s.addText("H.R. 10033, definition of “geofence notice”", {
+  s.addText("13 CCR 227.02(cc). The federal bill's definition is no more specific.", {
     x: M, y: 3.6, w: 7.5, h: 0.3,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.mono, fontSize: 11, color: C.onDarkMu
   });
 
-  s.addText("That is the entire definition. It does not say what is in the message, how an operator knows it is really from you, what “avoid” requires a vehicle to do, or what happens to the vehicles already inside.\n\nEvery one of those is a question your incident commander will have to settle on scene, once per operator, unless somebody writes it down first.", {
+  s.addText("That is the entire definition, and a two-minute mandatory action hangs off it. It does not say how an operator knows the message is really from you, what “avoid” requires a vehicle to do, what happens to the vehicles already inside, or how big an area “Valencia and 19th” is.\n\nEvery one of those is a question your incident commander will have to settle on scene, once per operator, unless somebody writes it down first.", {
     x: M, y: 4.22, w: 7.5, h: 2.0,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.body, fontSize: 15.5, lineSpacing: 23, color: C.onDarkMu
@@ -321,7 +323,8 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
 
   s.addNotes(
     "This is the slide the whole briefing turns on. Slow down here.\n\n" +
-    "The bill gives you authority. Authority without a defined message means every operator implements it differently, and the burden of reconciling that lands on the incident commander.\n\n" +
+    "The law gives you authority. Authority without a defined message means every operator implements it differently, and the burden of reconciling that lands on the incident commander.\n\n" +
+    "If someone asks about the street address clause: yes, an address is a legal way to identify the area, and no, it is not a boundary. Somebody has to decide how big a circle that means, and right now that somebody is the manufacturer.\n\n" +
     "The footnote is worth reading aloud. The fire service's own guidance today is informational. Nobody has handed departments a mechanism."
   );
 }
@@ -572,12 +575,12 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
  * ================================================================== */
 {
   const s = lightSlide();
-  heading(s, "Adoption", "Four things a department needs");
+  heading(s, "Adoption", "Four things a department needs. You already have the first.");
 
   const items = [
-    { n: "1", t: "A credential", b: "A signing certificate, so a notice from your agency is provably yours and a forged one is not. Who runs that registry is the hardest unsolved question in the draft.", flag: true },
+    { n: "1", t: "The authority to send it", b: "In California you have it now. A letter to each operator starts a 30 business day clock in which they must give you everything needed to begin issuing. You do not need anyone's permission and you do not need a credential to start.", flag: true },
     { n: "2", t: "An authorized issuer", b: "Incident commander, watch commander or dispatch supervisor, per your policy. The format assumes an incident number and a staffed callback line. You already have both." },
-    { n: "3", t: "A way to draw the zone", b: "A CAD integration, or the standalone console. Nothing to install and no network dependency beyond reaching the operators." },
+    { n: "3", t: "A way to draw the zone", b: "A CAD integration, or the standalone console. And a habit: send coordinates when your CAD can produce them. A landmark name makes somebody else guess how big the closure is." },
     { n: "4", t: "Standing policy on levels", b: "The format supplies the vocabulary. Deciding that a working structure fire gets PROHIBITED and a fender bender gets AVOID is a local command decision, made before the incident." }
   ];
 
@@ -616,8 +619,8 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     fill: { color: C.agencyLo }, line: { color: "E2C4BB", width: 1 }
   });
   s.addText([
-    { text: "Item 1 is not solved. ", options: { bold: true, color: C.onLight } },
-    { text: "If the fire service does not say who should issue these credentials, and how a twelve-person rural department gets one, that decision will be made without you.", options: { color: C.onLight } }
+    { text: "The credential question is still open. ", options: { bold: true, color: C.onLight } },
+    { text: "Signing is what separates your notice from a forged one, and there is now a proposal on the table for who issues those certificates. If the fire service does not say how a twelve-person rural department gets one, that decision gets made without you.", options: { color: C.onLight } }
   ], {
     x: M + 0.34, y: 5.86, w: W - 2 * M - 0.68, h: 0.56,
     isTextBox: true, margin: 0, valign: "top",
@@ -627,8 +630,9 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
   footnote(s, "");
 
   s.addNotes(
-    "Three of the four are things a department already has or can decide locally in an afternoon. The first one is the real work.\n\n" +
-    "Card 1 is outlined in red on purpose. Registry governance is genuinely unsolved and it is the piece where public safety input matters most and is currently absent.\n\n" +
+    "This slide changed. It used to say the first thing a department needs is a credential nobody can issue yet. In California that is no longer true: the authority to send is already yours, and the operator carries the duty to respond.\n\n" +
+    "Card 1 is outlined in red because it is the action item, not because it is the obstacle. The letter is one page. We have a draft.\n\n" +
+    "The red band is the remaining real gap. Signing is what makes a notice provably yours. There is a proposal now, which means the room has something to react to rather than a blank.\n\n" +
     "If someone asks who pays: nobody has costed this. Say so."
   );
 }
@@ -638,12 +642,12 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
  * ================================================================== */
 {
   const s = lightSlide();
-  heading(s, "Honesty slide", "Where this draft is tighter than the bill would allow");
+  heading(s, "Honesty slide", "Where this draft is tighter than the law requires");
 
   const cols = [3.6, 4.1, 4.19];
   const x0 = M, x1 = M + cols[0] + 0.16, x2 = M + cols[0] + cols[1] + 0.32;
 
-  const hdr = [["", x0, cols[0]], ["H.R. 10033 would permit", x1, cols[1]], ["This draft sets", x2, cols[2]]];
+  const hdr = [["", x0, cols[0]], ["California law allows", x1, cols[1]], ["This draft sets", x2, cols[2]]];
   hdr.forEach(([t, x, w]) => {
     if (!t) return;
     s.addText(t, {
@@ -655,9 +659,9 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
   });
 
   const rows = [
-    { k: "Maximum duration", a: "Up to 72 hours", b: "4 hours for a fire or police incident, 24 hours cumulative. 72 hours only for planned infrastructure work." },
-    { k: "Compliance timing", a: "Within 2 minutes", b: "Acknowledge in 15 seconds, routing updated in 30 seconds, vehicles clear of the zone in 5 minutes." },
-    { k: "Who may issue", a: "Any first responder or government agency", b: "Tiered by agency type, with duration and area ceilings that scale with the authority." }
+    { k: "Maximum duration", a: "Whatever duration the official states, extendable. No ceiling.", b: "4 hours for a fire or police incident, 24 hours cumulative. Longer only for planned infrastructure work." },
+    { k: "Compliance timing", a: "Fleet direction issued within 2 minutes", b: "Acknowledge in 15 seconds, routing updated in 30 seconds, vehicles clear of the zone in 5 minutes." },
+    { k: "What a location is", a: "A street address or an intersection is enough", b: "A shape. An address becomes a circle capped at 150 metres, recorded as synthesized, never quietly enlarged." }
   ];
 
   let y = 2.44;
@@ -699,7 +703,7 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     x: 9.1, y: 5.9, w: 3.62, h: 1.0, rectRadius: 0.06,
     fill: { color: C.agencyLo }, line: { color: "E2C4BB", width: 1 }
   });
-  s.addText("Compliance timing is the one place this draft may need to move toward the bill.", {
+  s.addText("Who may issue is the other gap. The law says any emergency response official, and does not define the edge of that list.", {
     x: 9.34, y: 6.06, w: 3.14, h: 0.7,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.body, fontSize: 12.5, lineSpacing: 17, color: C.onLight
@@ -708,9 +712,10 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
   footnote(s, "");
 
   s.addNotes(
-    "Put this slide in deliberately. A room of chiefs will assume anything technical is overselling itself, and the fastest way past that is to volunteer where the draft disagrees with the statute.\n\n" +
-    "The 4 hours versus 72 hours gap is the one people will push on. The answer: the bill sets an outer ceiling, the draft sets working limits inside it, and the working limits are a proposal you can argue with.\n\n" +
-    "Comply in 2 minutes versus clear the zone in 5 minutes are not the same claim. The draft should say which it means, and currently it does not. That is a genuine open item, not a rhetorical concession."
+    "Put this slide in deliberately. A room of chiefs will assume anything technical is overselling itself, and the fastest way past that is to volunteer where the draft disagrees with the law.\n\n" +
+    "The duration row is the one people will push on. The answer: the law sets no ceiling at all, the draft sets working limits, and the limits are a proposal you can argue with. Extending is one click. Forgetting is the failure the ceiling prevents.\n\n" +
+    "Row two: issue fleet direction in 2 minutes and have every vehicle clear in 5 are not the same claim, and the law only requires the first. Say that plainly.\n\n" +
+    "Row three is the newest finding and the one worth dwelling on. Under the regulation, saying Valencia and 19th is a legally sufficient location. Somebody then decides whether that means a hundred metres or half a mile, and today that somebody works for the operator. The draft takes that decision back and bounds it."
   );
 }
 
@@ -785,16 +790,16 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.mono, fontSize: 12, bold: true, charSpacing: 2.2, color: C.agency
   });
-  s.addText("Four things, none of which cost money", {
+  s.addText("Four things. The first one is a letter.", {
     x: M, y: 0.78, w: W - 2 * M, h: 0.7,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.head, fontSize: 36, bold: true, color: C.onDark
   });
 
   const asks = [
-    { n: "01", t: "Read it and push back", b: "Particularly the duration and area ceilings. Those numbers were set by reasoning about failure modes, not by anyone who has run a fire ground." },
+    { n: "01", t: "Send the letter", b: "One page to each operator running vehicles in your city, saying you intend to begin issuing and this is the interface you will use. California law then gives them 30 business days to make it work. We have a draft you can sign." },
     { n: "02", t: "Run a tabletop", b: "Take a real incident from your records, draw the zone in the console, and tell us where the format gets in the way." },
-    { n: "03", t: "Take a position on the registry", b: "Who issues the credentials, and how a small department gets one. This is the decision most likely to be made without you." },
+    { n: "03", t: "Take a position on the registry", b: "Who issues the signing credentials, and how a small department gets one. There is a proposal now. Argue with it." },
     { n: "04", t: "Back a common format", b: "The alternative is a separate bespoke arrangement with every operator, renegotiated each time a new one enters your city." }
   ];
 
@@ -822,16 +827,17 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     x: M, y: 6.24, w: W - 2 * M, h: 0.68, rectRadius: 0.06,
     fill: { color: C.inkSoft }, line: { color: "3A342E", width: 1 }
   });
-  s.addText("Federal rules are at least two years away, and only if the bill passes. The window to shape what a geofence notice means is open now.", {
+  s.addText("Federal rules average about five years, and only if the bill passes. The duty in California is in force today. Nothing about this is waiting on Washington.", {
     x: M + 0.34, y: 6.4, w: W - 2 * M - 0.68, h: 0.46,
     isTextBox: true, margin: 0, valign: "top",
     fontFace: F.body, fontSize: 14.5, color: C.onDark
   });
 
   s.addNotes(
-    "Close on the timing. Two years of rulemaking sounds slow, but the practices that get written into that rule are being set now by whoever shows up.\n\n" +
-    "Concrete next step to offer the room: a one-hour tabletop with a real incident from their own records. That is the smallest useful commitment and it produces the feedback the draft actually needs.\n\n" +
-    "Leave behind: the executive summary, the draft specification, and the console."
+    "Close on the timing, and close hard. The old version of this slide said federal rules were two years out. The real figure is about five years on average, and the bill has not passed. None of that matters, because the California duty is already in force and the letter in ask 01 works today.\n\n" +
+    "Ask 01 is the whole point of the briefing now. It is one page, it needs no legislature, no regulator, and no credential, and it starts a clock the operator has to answer.\n\n" +
+    "Concrete second step: a one-hour tabletop with a real incident from their own records. Smallest useful commitment, and it produces the feedback the draft actually needs.\n\n" +
+    "Leave behind: the executive summary, the California profile, the draft specification, and the console."
   );
 }
 
