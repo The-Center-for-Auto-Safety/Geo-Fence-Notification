@@ -1,4 +1,4 @@
-# Closing the street to a robotaxi
+# Closing the street to an Autonomous Vehicle
 
 **A common format for geofence notices, so one message from your dispatcher reaches every automated vehicle operating in your jurisdiction.**
 
