@@ -4,7 +4,7 @@ A signed, time-bounded, machine-readable instruction from a public authority tel
 
 Designed so one notice can be authored once and delivered over a direct API, IPAWS/CAP 1.2, C-V2X broadcast, or a phone call, without re-authoring.
 
-**Repository:** <https://github.com/The-Center-for-Auto-Safety/Geo-Fence-Notification>, maintained by the Center for Auto Safety.
+**Repository:** <https://github.com/The-Center-for-Auto-Safety/Geo-Fence-Notification>, maintained by [the Center for Auto Safety](https://www.autosafety.org).
 
 **Live system demo:** <https://autosafety.org/geo-fence/system-demo.html>. An end-to-end model of the issuing system: the console, the gateway checks and signature, operator delivery, and the append-only record. It runs in exercise mode and nothing in it reaches an operator.
 
