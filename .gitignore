@@ -12,10 +12,3 @@ brief/thumbnails*.jpg
 
 # Local scratch
 *.bak
-
-# Word review copies ARE committed, so reviewers can download them straight
-# from the repository. They are generated: rerun tools/make-review-docs.py
-# after editing any markdown source, or they go stale.
-# Only the PDF proofs used to check rendering are ignored.
-review-copies/*.pdf
-review-copies/*.jpg

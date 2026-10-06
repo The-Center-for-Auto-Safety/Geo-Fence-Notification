@@ -4,12 +4,15 @@ A signed, time-bounded, machine-readable instruction from a public authority tel
 
 Designed so one notice can be authored once and delivered over a direct API, IPAWS/CAP 1.2, C-V2X broadcast, or a phone call, without re-authoring.
 
+**Repository:** <https://github.com/The-Center-for-Auto-Safety/Geo-Fence-Notification>, maintained by the Center for Auto Safety.
+
+**Live system demo:** <https://autosafety.org/geo-fence/system-demo.html>. An end-to-end model of the issuing system: the console, the gateway checks and signature, operator delivery, and the append-only record. It runs in exercise mode and nothing in it reaches an operator.
+
 ## Files
 
 | Path | What it is |
 |---|---|
 | `GFN-0.1-specification.md` | The specification. Start here. |
-| `GFN-0.1-specification.docx` | The same specification as a Word document, for circulation. |
 | `schema/geofence-notice.schema.json` | JSON Schema 2020-12 for a notice. |
 | `schema/acknowledgement.schema.json` | JSON Schema 2020-12 for an operator acknowledgement. |
 | `examples/01-structure-fire.json` | Tier 1 fire department, `PROHIBITED`, immediate, 4 hours. |
@@ -29,8 +32,6 @@ Designed so one notice can be authored once and delivered over a direct API, IPA
 | `PROFILE-CALIFORNIA.md` | Binding to Cal. Veh. Code 38751 and 13 CCR Articles 3.7 and 3.8. Four assurance levels, ceilings for each, the two-minute clock, and what a manufacturer hands an agency under 228.08(c)(10)(F). |
 | Glossary | Appendix A of the specification defines every acronym and term of art. `MESSAGE-FLOW.md` carries its own, and `EXECUTIVE-SUMMARY.md` a plain-language one for a command audience. |
 | `validate.py` | Validates every example against the schema plus the semantic rules the schema cannot express. |
-| `tools/` | `make-review-docs.py` generates the Word review copies; `extract-comments.py` reads reviewer comments back out of them. `reference.docx` is the Word template both use. |
-| `review-copies/` | Generated `.docx` of each document, for reviewers who would rather comment in Word. Regenerate after any edit; never edit one as a source. |
 | `demo/dispatcher-console.html` | A working demonstration console: a fire department draws a geofence, issues it, and a simulated automated vehicle fleet clears the zone. Open it in a browser, no build step and no network needed. |
 
 ## Running the validator
@@ -46,7 +47,7 @@ The validator covers what JSON Schema cannot: tier ceilings on duration, area an
 
 ## The demo console
 
-`demo/dispatcher-console.html` is the specification from the issuing side. It opens on a live incident: a structure fire on Valencia between 18th and 20th, four automated vehicles inside the zone, the notice still in draft.
+`demo/dispatcher-console.html` is the specification from the issuing side. It is a separate page from the hosted system demo linked at the top of this file, which models the whole path from console to record. It opens on a live incident: a structure fire on Valencia between 18th and 20th, four automated vehicles inside the zone, the notice still in draft.
 
 The three lifecycle actions, **Update**, **Extend** and **Cancel**, sit in a sticky bar at the top of the window with the live countdown, so they stay reachable however far you have scrolled.
 
@@ -87,8 +88,8 @@ A notice answers five things in a form both a fire captain and a routing planner
 
 ## How to comment on this draft
 
-Everything here is a draft for comment. There are three ways to give feedback, and
-they all end up in the same place. Pick whichever costs you the least.
+Everything here is a draft for comment. There are two ways to give feedback, and
+both end up in the same place. Pick whichever costs you the least.
 
 ### 1. Reply in plain language, quoting the rule number
 
@@ -100,52 +101,10 @@ everywhere else. Quote the identifier and say what is wrong:
 
 > P-6, one hour is too short for a working structure fire. Make it two.
 
-That is a complete review comment. Send it by email or open a GitHub issue. Nothing
-else is required, and a comment in this form is treated exactly the same as one left
-in a document.
+That is a complete review comment. Send it by email or [open a GitHub issue](https://github.com/The-Center-for-Auto-Safety/Geo-Fence-Notification/issues). Nothing
+else is required.
 
-### 2. Comment in the Word review copies
-
-`review-copies/` holds a `.docx` of each document, generated from the markdown. Open one,
-select the text, choose **Review > New Comment**, and type. To propose exact wording,
-turn on **Review > Track Changes** and edit the text directly.
-
-These files work in Word on Mac and Windows, in the free Word Online, in Apple Pages,
-and in Google Docs, all of which read and write `.docx` comments.
-
-**One shared copy beats five emailed copies.** Put a single file in whatever shared
-drive the group already uses (SharePoint, OneDrive, Google Drive, Dropbox) and give the
-reviewers commenting access to that one file. Reviewers then see each other's comments,
-which halves the volume, because the second person to reach a rule either backs the first
-comment or argues with it instead of writing it again. If you upload to Google Drive,
-share as **Commenter** rather than Editor: commenting is all that is needed, and it
-prevents Docs autocorrect from silently curling the quotation marks inside the
-regulatory text this draft quotes verbatim.
-
-The review copies are generated, not authored. The markdown in this repository is the
-source of truth. Clean copies are committed under `review-copies/` so reviewers can
-download one directly instead of waiting for an email, and a copy that comes back with
-comments on it is discarded once those comments have been extracted. Do not treat
-either as a document of record, and do not edit one expecting the change to survive.
-Regenerate them whenever a markdown source changes, or they go stale silently.
-
-Regenerate them after any edit to the markdown:
-
-```
-python3 tools/make-review-docs.py
-```
-
-Collect the comments from returned files:
-
-```
-python3 tools/extract-comments.py review-copies/*.docx
-```
-
-That prints every comment with its author, date, the text it was anchored to, and the
-nearest rule identifier, sorted so that all five reviewers' comments on `P-6` appear
-together.
-
-### 3. Review on GitHub
+### 2. Review on GitHub
 
 For anyone comfortable with it, this is the least work for everybody. Reviewers need
 only the **Read** role on the repository, which is enough to submit reviews and comment
@@ -159,9 +118,7 @@ Do not leave comments as HTML comments (`<!-- like this -->`) in the markdown. T
 invisible in every rendered view, so no other reviewer can see them and the same
 objection arrives several times.
 
-Do not make a Google Doc the master copy. As a place for five people to leave comments
-on a generated copy it is fine, and better than five separate emailed files. As the
-document of record it is not: round-tripping these tables and code blocks back to
+Do not make a Google Doc the master copy. Round-tripping these tables and code blocks back to
 markdown loses fidelity every trip, and the exact regulatory quotations in
 `PROFILE-CALIFORNIA.md` do not survive an editor that curls quotation marks.
 
