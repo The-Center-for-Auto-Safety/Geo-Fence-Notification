@@ -878,7 +878,7 @@ details.more[open] > summary::before { content: "▾ "; }
     </div>
 
     <div class="footnote">
-      <b>Demonstration.</b> The fleet, the operator acknowledgements and the signature are simulated.
+      <b>Demonstration.</b> The fleet, the operator acknowledgments and the signature are simulated.
       The notice itself is real and validates against <code>schema/geofence-notice.schema.json</code> from the GFN v0.1 draft.
       Street geometry is a stylized Mission District grid anchored on Valencia &amp; 18th; coordinates are true WGS 84 to within about 25&nbsp;m.
     </div>
@@ -891,7 +891,7 @@ details.more[open] > summary::before { content: "▾ "; }
 /* ==================================================================== *
  * 1. Geodesy and the base map
  *
- * The grid is defined in local metres (u east-ish along cross streets,
+ * The grid is defined in local meters (u east-ish along cross streets,
  * v north-ish along the avenues) and rotated 8 degrees, which is roughly
  * how the Mission sits against true north. Converting through lat/lon
  * rather than drawing straight to pixels means the coordinates a
@@ -960,7 +960,7 @@ var PROJ = (function () {
     toLatLon: function (x, y) {
       return { lat: cy - (y - VIEW_H / 2) / s, lon: cx + (x - VIEW_W / 2) / kx };
     },
-    metresPerPx: 1 / (s / M_PER_DEG_LAT)
+    metersPerPx: 1 / (s / M_PER_DEG_LAT)
   };
 })();
 
@@ -1003,12 +1003,12 @@ var NODES = [], EDGES = [], NODE_AT = {};
  * 2. Zone geometry
  * ==================================================================== */
 
-var zone = null;   // { kind, ring:[{lat,lon}], centre, radiusM, line, bufferM }
+var zone = null;   // { kind, ring:[{lat,lon}], center, radiusM, line, bufferM }
 
 function ringOf(z) {
   if (!z) return null;
   if (z.kind === "polygon") return z.ring;
-  if (z.kind === "circle") return circleRing(z.centre, z.radiusM);
+  if (z.kind === "circle") return circleRing(z.center, z.radiusM);
   if (z.kind === "corridor") return corridorRing(z.line, z.bufferM);
   return null;
 }
@@ -1026,7 +1026,7 @@ function circleRing(c, rM) {
 }
 
 function corridorRing(line, bufM) {
-  // offset the polyline both ways in metres, then cap the ends square
+  // offset the polyline both ways in meters, then cap the ends square
   if (line.length < 2) return [];
   var m = line.map(function (p) {
     return { x: (p.lon - ORIGIN.lon) * M_PER_DEG_LON, y: (p.lat - ORIGIN.lat) * M_PER_DEG_LAT };
@@ -1343,7 +1343,7 @@ function stepFleet(minutes) {
       v.t -= 1;
       var arrived = v.fwd ? e.b : e.a;
 
-      // AV-4471 is the boxed-in vehicle from the spec's acknowledgement example
+      // AV-4471 is the boxed-in vehicle from the spec's acknowledgment example
       if (ring && hard && v.id === "AV-4471" && !nodeOutside(arrived, ring) && v.state === "exiting") {
         v.state = "blocked";
         v.blockedAt = arrived;
@@ -1429,7 +1429,7 @@ function inZoneCount() { return vehiclesInZone().length; }
 function iso(ms) { return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z"); }
 
 /* A notice_id is never reused. Issuing a second notice under the id of a
-   cancelled one puts it at sequence 1 under a key receivers have already
+   canceled one puts it at sequence 1 under a key receivers have already
    seen, and every conforming receiver discards it. */
 function mintNoticeId(incident) {
   var slug = String(incident || "inc").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -1477,7 +1477,7 @@ function buildNotice(msgType) {
 
   var geometry;
   if (zone && zone.kind === "circle") {
-    geometry = { type: "Point", coordinates: [round6(zone.centre.lon), round6(zone.centre.lat)] };
+    geometry = { type: "Point", coordinates: [round6(zone.center.lon), round6(zone.center.lat)] };
   } else if (zone && zone.kind === "corridor") {
     geometry = { type: "LineString", coordinates: zone.line.map(function (p) { return [round6(p.lon), round6(p.lat)]; }) };
   } else {
@@ -1842,7 +1842,7 @@ function el(name, attrs, parent) {
 
 var map = $("map"), layerBase, layerZone, layerFleet;
 
-/* Map colours come from the stylesheet, so the light and dark palettes
+/* Map colors come from the stylesheet, so the light and dark palettes
    are defined in exactly one place and the map follows the OS setting
    without a second set of hex codes to keep in sync. */
 var MC = {};
@@ -1912,7 +1912,7 @@ function drawBase() {
     });
   });
 
-  // centre dashes on the arterials
+  // center dashes on the arterials
   EDGES.forEach(function (e) {
     if (!ARTERIALS[e.name]) return;
     var A = NODES[e.a], B = NODES[e.b];
@@ -1953,7 +1953,7 @@ function drawBase() {
                         "font-size": 12, "font-weight": 700, "text-anchor": "middle" }, g);
   nt.textContent = "N";
 
-  var barM = 200, barPx = barM / PROJ.metresPerPx;
+  var barM = 200, barPx = barM / PROJ.metersPerPx;
   var sg = el("g", { transform: "translate(" + (VIEW_W - 40 - barPx) + "," + (VIEW_H - 26) + ")" }, layerBase);
   el("line", { x1: 0, y1: 0, x2: barPx, y2: 0, stroke: MC.rule, "stroke-width": 2 }, sg);
   el("line", { x1: 0, y1: -4, x2: 0, y2: 4, stroke: MC.rule, "stroke-width": 2 }, sg);
@@ -1994,9 +1994,9 @@ function drawZone() {
           el("circle", { cx: q.x, cy: q.y, r: 5, fill: MC.surface, stroke: MC.danger, "stroke-width": 2.5 }, layerZone);
         });
       }
-    } else if (d.kind === "circle" && d.centre) {
-      var c = PROJ.toXY(d.centre.lat, d.centre.lon);
-      el("circle", { cx: c.x, cy: c.y, r: Math.max(2, (d.radiusM || 0) / PROJ.metresPerPx),
+    } else if (d.kind === "circle" && d.center) {
+      var c = PROJ.toXY(d.center.lat, d.center.lon);
+      el("circle", { cx: c.x, cy: c.y, r: Math.max(2, (d.radiusM || 0) / PROJ.metersPerPx),
                      fill: MC.danger, "fill-opacity": 0.1, stroke: MC.danger,
                      "stroke-width": 2.5, "stroke-dasharray": "7 5" }, layerZone);
       el("circle", { cx: c.x, cy: c.y, r: 4, fill: MC.danger }, layerZone);
@@ -2192,7 +2192,7 @@ function renderReadouts() {
     $("rExpiry").textContent = "—";
     $("rExpiry").setAttribute("data-tone", "");
   } else if (state.status === "ENDED") {
-    $("rExpiry").textContent = state.endedReason === "cancelled" ? "cancelled" : "expired";
+    $("rExpiry").textContent = state.endedReason === "canceled" ? "canceled" : "expired";
     $("rExpiry").setAttribute("data-tone", "");
   } else {
     var left = Math.max(0, state.effectiveEnd - state.clock);
@@ -2258,7 +2258,7 @@ function renderStatus() {
     LIVE:     "Live · seq " + state.sequence,
     CLEAR:    "Live · zone clear",
     REVISING: "Editing revision",
-    ENDED:    state.endedReason === "cancelled" ? "Cancelled" : "Expired"
+    ENDED:    state.endedReason === "canceled" ? "Canceled" : "Expired"
   }[st];
 
   // the countdown belongs beside the actions, where the decision is made
@@ -2394,7 +2394,7 @@ map.addEventListener("pointermove", function (ev) {
       press.moved = true;
       state.keyboard = false;
       if (state.tool === "circle") {
-        state.draft = { kind: "circle", centre: press.ll, radiusM: 0 };
+        state.draft = { kind: "circle", center: press.ll, radiusM: 0 };
       } else if (state.tool === "corridor") {
         state.draft = { kind: "corridor", pts: [press.ll, ll] };
       } else {
@@ -2403,7 +2403,7 @@ map.addEventListener("pointermove", function (ev) {
     }
     if (press.moved && state.draft) {
       if (state.draft.kind === "circle") {
-        var c = state.draft.centre;
+        var c = state.draft.center;
         var dx = (ll.lon - c.lon) * M_PER_DEG_LON, dy = (ll.lat - c.lat) * M_PER_DEG_LAT;
         state.draft.radiusM = Math.min(5000, Math.hypot(dx, dy));
       } else if (state.draft.kind === "corridor") {
@@ -2417,8 +2417,8 @@ map.addEventListener("pointermove", function (ev) {
   }
 
   // click-then-move radius preview, for the click-click circle path
-  if (!press && state.draft && state.draft.kind === "circle" && state.draft.centre) {
-    var c2 = state.draft.centre;
+  if (!press && state.draft && state.draft.kind === "circle" && state.draft.center) {
+    var c2 = state.draft.center;
     var dx2 = (ll.lon - c2.lon) * M_PER_DEG_LON, dy2 = (ll.lat - c2.lat) * M_PER_DEG_LAT;
     state.draft.radiusM = Math.min(5000, Math.hypot(dx2, dy2));
     drawZone();
@@ -2477,8 +2477,8 @@ function ensureCursor() {
 function nudge(dLat, dLon) {
   ensureCursor();
   state.cursor = { lat: state.cursor.lat + dLat, lon: state.cursor.lon + dLon };
-  if (state.draft && state.draft.kind === "circle" && state.draft.centre) {
-    var c = state.draft.centre;
+  if (state.draft && state.draft.kind === "circle" && state.draft.center) {
+    var c = state.draft.center;
     state.draft.radiusM = Math.min(5000, Math.hypot(
       (state.cursor.lon - c.lon) * M_PER_DEG_LON,
       (state.cursor.lat - c.lat) * M_PER_DEG_LAT));
@@ -2520,7 +2520,7 @@ map.addEventListener("keydown", function (ev) {
 
 document.addEventListener("keydown", function (ev) {
   if (ev.key === "Enter" && state.draft) { ev.preventDefault(); commitDraft(); }
-  if (ev.key === "Escape" && state.draft) { state.draft = null; setTool(null); renderAll(); announce("Drawing cancelled."); }
+  if (ev.key === "Escape" && state.draft) { state.draft = null; setTool(null); renderAll(); announce("Drawing canceled."); }
 });
 
 function placePoint(ll) {
@@ -2529,9 +2529,9 @@ function placePoint(ll) {
     state.draft.pts.push(ll);
     announce(state.draft.pts.length + " points placed. Press Enter to finish.");
   } else if (state.tool === "circle") {
-    if (!state.draft || !state.draft.centre) {
-      state.draft = { kind: "circle", centre: ll, radiusM: 0 };
-      announce("Centre placed. Move the crosshair to set the radius, then press Enter.");
+    if (!state.draft || !state.draft.center) {
+      state.draft = { kind: "circle", center: ll, radiusM: 0 };
+      announce("Center placed. Move the crosshair to set the radius, then press Enter.");
     } else {
       commitDraft();
       return;
@@ -2569,13 +2569,13 @@ function commitDraft() {
     if (d.pts.length < 2) return;
     zone = { kind: "corridor", line: d.pts.slice(), bufferM: state.form.bufferM };
   } else if (d.kind === "circle") {
-    if (!d.centre || d.radiusM < 20) return;
-    zone = { kind: "circle", centre: d.centre, radiusM: d.radiusM };
+    if (!d.center || d.radiusM < 20) return;
+    zone = { kind: "circle", center: d.center, radiusM: d.radiusM };
   }
   state.draft = null;
   setTool(null);
   renderAll();
-  announce("Zone set: " + areaKm2().toFixed(3) + " square kilometres.");
+  announce("Zone set: " + areaKm2().toFixed(3) + " square kilometers.");
 }
 
 function setTool(t) {
@@ -2835,8 +2835,8 @@ $("btnIssue").addEventListener("click", function () {
   logLine("issue", "<b>NOTICE ISSUED</b> seq 1 &middot; " + esc(state.form.level) +
     " &middot; " + area.toFixed(3) + " km² &middot; expires " + esc(iso(state.effectiveEnd)));
 
-  // acknowledgements belong to the notice that asked for them; if it is
-  // cancelled first, they must not land afterwards acknowledging nothing
+  // acknowledgments belong to the notice that asked for them; if it is
+  // canceled first, they must not land afterward acknowledging nothing
   var n0 = inZoneCount();
   function ackLater(ms, html) {
     setTimeout(function () { if (state.issueToken === token) logLine("ack", html); }, ms);
@@ -2939,7 +2939,7 @@ $("btnCancel").addEventListener("click", function () {
   state.priorSentAt = state.issuedAt;
   state.msgType = "CANCEL";
   state.sequence += 1;
-  state.endedReason = "cancelled";
+  state.endedReason = "canceled";
   state.status = "ENDED";
   state.issuedAt = state.clock;
   logLine("end", "<b>CANCEL</b> seq " + state.sequence + " &middot; scene released, roadway reopened ahead of expiry");

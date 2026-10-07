@@ -520,7 +520,7 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
 
   s.addNotes(
     "If you only have time for one card, use the first. Exit, never freeze.\n\n" +
-    "The second card is the one that protects the public and your relationship with the city. A geofence nobody cancelled is a neighborhood quietly losing service, and nobody finds out for a week.\n\n" +
+    "The second card is the one that protects the public and your relationship with the city. A geofence nobody canceled is a neighborhood quietly losing service, and nobody finds out for a week.\n\n" +
     "The third card is what you say when someone in the room asks whether this lets you shut down cars remotely. It does not, deliberately, and that is a feature. An advisory that never causes an unsafe maneuver is a thing an operator can accept immediately."
   );
 }
@@ -561,7 +561,7 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     y += 0.88;
   });
 
-  footnote(s, "Working demonstration console. The fleet, the acknowledgements and the signature are simulated; the notice it produces is real and validates against the specification.");
+  footnote(s, "Working demonstration console. The fleet, the acknowledgments and the signature are simulated; the notice it produces is real and validates against the specification.");
 
   s.addNotes(
     "Show, do not describe. If you have a laptop, open the console and draw a zone live instead of using this slide. It takes about twenty seconds.\n\n" +
@@ -661,7 +661,7 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
   const rows = [
     { k: "Maximum duration", a: "Whatever duration the official states, extendable. No ceiling.", b: "4 hours for a fire or police incident, 24 hours cumulative. Longer only for planned infrastructure work." },
     { k: "Compliance timing", a: "Fleet direction issued within 2 minutes", b: "Acknowledge in 15 seconds, routing updated in 30 seconds, vehicles clear of the zone in 5 minutes." },
-    { k: "What a location is", a: "A street address or an intersection is enough", b: "A shape. An address becomes a circle capped at 150 metres, recorded as synthesized, never quietly enlarged." }
+    { k: "What a location is", a: "A street address or an intersection is enough", b: "A shape. An address becomes a circle capped at 150 meters, recorded as synthesized, never quietly enlarged." }
   ];
 
   let y = 2.44;
@@ -715,7 +715,7 @@ function logCard(s, x, y, w, h, stamp, headline, detail, opts) {
     "Put this slide in deliberately. A room of chiefs will assume anything technical is overselling itself, and the fastest way past that is to volunteer where the draft disagrees with the law.\n\n" +
     "The duration row is the one people will push on. The answer: the law sets no ceiling at all, the draft sets working limits, and the limits are a proposal you can argue with. Extending is one click. Forgetting is the failure the ceiling prevents.\n\n" +
     "Row two: issue fleet direction in 2 minutes and have every vehicle clear in 5 are not the same claim, and the law only requires the first. Say that plainly.\n\n" +
-    "Row three is the newest finding and the one worth dwelling on. Under the regulation, saying Valencia and 19th is a legally sufficient location. Somebody then decides whether that means a hundred metres or half a mile, and today that somebody works for the operator. The draft takes that decision back and bounds it."
+    "Row three is the newest finding and the one worth dwelling on. Under the regulation, saying Valencia and 19th is a legally sufficient location. Somebody then decides whether that means a hundred meters or half a mile, and today that somebody works for the operator. The draft takes that decision back and bounds it."
   );
 }
 

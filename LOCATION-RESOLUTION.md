@@ -6,7 +6,7 @@
 
 ## 1. The problem this exists to solve
 
-GFN 7.1 makes `zones[].geometry` a MUST. Every safety control in the specification is built on that assumption. The area ceilings in 5.3 are expressed in square kilometres. Jurisdictional containment in 5.4 is a geometric test and is described there as the primary defense against a compromised small-agency credential closing a metropolitan area. Neither can run on a message that does not carry a shape.
+GFN 7.1 makes `zones[].geometry` a MUST. Every safety control in the specification is built on that assumption. The area ceilings in 5.3 are expressed in square kilometers. Jurisdictional containment in 5.4 is a geometric test and is described there as the primary defense against a compromised small-agency credential closing a metropolitan area. Neither can run on a message that does not carry a shape.
 
 Some jurisdictions do not require one. California's 13 CCR 227.02(cc) defines a conforming emergency geofencing message as one that identifies a location "using a street address, intersection, coordinates, or any other reasonable and customary way of identifying a location." A dispatcher who says "Valencia and 19th, keep them out" has issued a message that California law obliges a manufacturer to act on within two minutes, and that GFN as written cannot represent, bound, or contain.
 
@@ -91,7 +91,7 @@ An unauthenticated string, an area the receiver chose, and a total closure is th
 
 **R-16.** An `EXTEND` or `UPDATE` against a notice containing a resolved zone MUST either carry the same resolved geometry or supply issuer-drawn geometry. It MUST NOT re-resolve to a larger area, and it MUST NOT resolve a new identifier into an enlargement.
 
-Without R-16, resolution becomes an area-escalation primitive: issue against a vague string, then extend against a vaguer one. The cumulative duration ceiling in 4.3 has a cumulative-area analogue here and this is it.
+Without R-16, resolution becomes an area-escalation primitive: issue against a vague string, then extend against a vaguer one. The cumulative duration ceiling in 4.3 has a cumulative-area analog here and this is it.
 
 ### 3.9 Audit
 
@@ -109,7 +109,7 @@ R-17 and R-18 exist because of what 12's three-year retention is for. Without th
 
 ## 4. New rejection codes
 
-Two additions to the `rejection_code` enum in `schema/acknowledgement.schema.json`:
+Two additions to the `rejection_code` enum in `schema/acknowledgment.schema.json`:
 
 | Code | Meaning |
 |---|---|
@@ -122,9 +122,9 @@ Two additions to the `rejection_code` enum in `schema/acknowledgement.schema.jso
 
 **Implemented 2026-09-04.** The rule is enforced, not just written.
 
-**Schema.** `$defs.locationResolution` added to `geofence-notice.schema.json`, referenced from `$defs.zone.properties.location_resolution`. Required: `source_text`, `identifier_type`, `resolver` (name and version), `resolved_at`, `candidate_count`. Optional: `source_channel`, `disambiguation`. Two conditionals enforce the rule: `candidate_count` of 2 or more requires `disambiguation` (R-12, R-13), and the presence of `location_resolution` constrains the zone to `Point` or `LineString` geometry with `buffer_m` required and capped at 250 (R-4, R-6). The 250 cap is expressed as a per-zone override of the general 5000 m buffer maximum, so a resolved zone cannot reach the ordinary limit. `AMBIGUOUS_LOCATION` and `LOCATION_NOT_RESOLVABLE` added to the `rejection_code` enum in `acknowledgement.schema.json`.
+**Schema.** `$defs.locationResolution` added to `geofence-notice.schema.json`, referenced from `$defs.zone.properties.location_resolution`. Required: `source_text`, `identifier_type`, `resolver` (name and version), `resolved_at`, `candidate_count`. Optional: `source_channel`, `disambiguation`. Two conditionals enforce the rule: `candidate_count` of 2 or more requires `disambiguation` (R-12, R-13), and the presence of `location_resolution` constrains the zone to `Point` or `LineString` geometry with `buffer_m` required and capped at 250 (R-4, R-6). The 250 cap is expressed as a per-zone override of the general 5000 m buffer maximum, so a resolved zone cannot reach the ordinary limit. `AMBIGUOUS_LOCATION` and `LOCATION_NOT_RESOLVABLE` added to the `rejection_code` enum in `acknowledgment.schema.json`.
 
-**Validator.** `RESOLVED_BUFFER_MAX_M = 250` and a resolution block in `semantic_checks` covering R-4, R-6, R-13 and R-15. The verbatim `source_text` is also run through the 6.1 free-text hygiene checks, because it is caller-supplied prose that lands in a three-year record: a dispatcher who reads a licence plate or a name into the phone should not have it laundered into the audit trail through the location field.
+**Validator.** `RESOLVED_BUFFER_MAX_M = 250` and a resolution block in `semantic_checks` covering R-4, R-6, R-13 and R-15. The verbatim `source_text` is also run through the 6.1 free-text hygiene checks, because it is caller-supplied prose that lands in a three-year record: a dispatcher who reads a license plate or a name into the phone should not have it laundered into the audit trail through the location field.
 
 R-4, R-6 and R-13 are enforced by the schema first and by the validator second. That redundancy is deliberate. `validate.py` is the reference implementation a receiver reads to understand what to build, and a receiver that validates against the schema alone still needs the checks in a form it can port. Both paths were exercised directly to confirm neither is dead code.
 

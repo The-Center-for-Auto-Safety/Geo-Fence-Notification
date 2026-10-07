@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://spec.example.org/gfn/0.1/acknowledgement.schema.json",
-  "title": "Geofence Notice Acknowledgement (GFN) v0.1",
+  "$id": "https://spec.example.org/gfn/0.1/acknowledgment.schema.json",
+  "title": "Geofence Notice Acknowledgment (GFN) v0.1",
   "description": "An AV operator's response to a Geofence Notice. See GFN-0.1-specification.md Section 9.",
   "type": "object",
   "additionalProperties": false,

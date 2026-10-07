@@ -14,18 +14,18 @@ Designed so one notice can be authored once and delivered over a direct API, IPA
 |---|---|
 | `GFN-0.1-specification.md` | The specification. Start here. |
 | `schema/geofence-notice.schema.json` | JSON Schema 2020-12 for a notice. |
-| `schema/acknowledgement.schema.json` | JSON Schema 2020-12 for an operator acknowledgement. |
+| `schema/acknowledgment.schema.json` | JSON Schema 2020-12 for an operator acknowledgment. |
 | `examples/01-structure-fire.json` | Tier 1 fire department, `PROHIBITED`, immediate, 4 hours. |
 | `examples/02-crime-scene-restricted.json` | Tier 1 police, `RESTRICTED` scope, open corridor. |
 | `examples/03-flooding-avoid.json` | Tier 1W county EOC, `AVOID`, multi-zone, an `UPDATE` at sequence 3. |
 | `examples/04-vip-movement-private.json` | Tier 2 federal, `PRIVATE` scope, `NO_STOP` corridor, exempt operator. |
 | `examples/05-utility-outage-no-driverless.json` | Tier 3 utility, `NO_DRIVERLESS`, planned with lead time. |
 | `examples/06-cancel.json` | `CANCEL` at sequence 2, ending example 01 early. |
-| `examples/07-acknowledgement.json` | Operator ack with an exception for a boxed-in vehicle. |
+| `examples/07-acknowledgment.json` | Operator ack with an exception for a boxed-in vehicle. |
 | `examples/08-structure-fire-cap-1.2.xml` | Example 01 rendered as CAP 1.2 for IPAWS. |
 | `examples/invalid/91` … `/102` | Notices that MUST be rejected, one per failure mode: duration over ceiling, swapped coordinates, level not permitted for tier, unsigned live notice, cross-authority cancel, extend loop past the cumulative ceiling, hole outside its exterior ring, self-intersecting figure-eight, buffer on a polygon, resolved buffer over the 250 m ceiling, a prohibitive level on synthesized geometry without callback verification, and a multi-candidate location the resolver picked by rank. |
 | `examples/09-resolved-intersection.json` | A zone the gateway synthesized from "Valencia and 19th" rather than one the issuer drew, with the `location_resolution` audit block that makes that visible. |
-| `MESSAGE-FLOW.md` | How a message is sent and received: canonicalization, signing, the thirteen receive gates in order, how a notice actually reaches a vehicle, acknowledgement, the lifecycle messages, the IPAWS path, and the failure modes. Start here to implement either end. |
+| `MESSAGE-FLOW.md` | How a message is sent and received: canonicalization, signing, the thirteen receive gates in order, how a notice actually reaches a vehicle, acknowledgment, the lifecycle messages, the IPAWS path, and the failure modes. Start here to implement either end. |
 | `SECURITY-REVIEW.md` | Adversarial review of the draft, with the disposition of every finding. |
 | `REGISTRY-GOVERNANCE.md` | Resolves Section 14 item 1. The five jobs the registry actually does, why it is two registries rather than one, five governance models scored against the same criteria, a recommendation with recorded dissent, and a four-lane adoption path that does not wait on federal rulemaking. |
 | `LOCATION-RESOLUTION.md` | Normative draft of Section 7.4. How a street address or intersection becomes a bounded, contained, auditable zone, and why a receiver must reject an ambiguous one rather than geocode it. |
@@ -55,12 +55,12 @@ What it shows that the prose cannot:
 
 - **Tier limits as you work.** The duration and area meters fill against the Tier 1 limits. A single verdict says whether the notice is ready to issue; the twelve individual checks are behind it for anyone who wants them.
 - **Revision without rewriting.** Update opens a revision: the published restriction stays in force while you redraw it, and publishing emits an `UPDATE` at the next sequence with `references` and `original_effective_start`. Editing a live notice in place at sequence 1 would silently rewrite something receivers have already accepted.
-- **What "exit, never freeze" looks like.** Issue the notice and the vehicles inside route out along the street grid rather than stopping where they stand. One of them, AV-4471, gets boxed in by apparatus and is reported as an acknowledgement exception, which is the case example 07 in the spec describes.
+- **What "exit, never freeze" looks like.** Issue the notice and the vehicles inside route out along the street grid rather than stopping where they stand. One of them, AV-4471, gets boxed in by apparatus and is reported as an acknowledgment exception, which is the case example 07 in the spec describes.
 - **Mandatory expiry.** The countdown runs down and the restriction lifts on its own. Run the clock at 900x to watch it happen.
 - **The lifecycle rules.** Extend opens a fresh window from now rather than stretching the old one, because stretching it would breach the per-message ceiling. Cancel issues sequence 2. Re-issuing after a cancel mints a new `notice_id`, because reusing one puts a second notice at sequence 1 under a key receivers have already seen.
 - **The coordinate reversal.** Under Message, the Notice view shows GeoJSON `[longitude, latitude]` and the CAP 1.2 view shows the same ring as `latitude,longitude`.
 
-Everything simulated is labelled as simulated: the fleet, the operator acknowledgements, and the signature. The notices it emits are real, and validate against `schema/geofence-notice.schema.json`.
+Everything simulated is labeled as simulated: the fleet, the operator acknowledgments, and the signature. The notices it emits are real, and validate against `schema/geofence-notice.schema.json`.
 
 Four incident presets fill the reason, severity, restriction, window and public text in one click, because the failure mode at 04:00 is a half-filled form rather than a wrong one.
 
@@ -80,7 +80,7 @@ A notice answers five things in a form both a fire captain and a routing planner
 
 ## Three things that are easy to get wrong
 
-**Coordinate order.** GFN uses GeoJSON `[longitude, latitude]`. CAP 1.2 uses `latitude,longitude`. Getting the conversion backwards moves a San Francisco geofence into the Southern Ocean. `examples/invalid/92-swapped-coordinates.json` is the regression test.
+**Coordinate order.** GFN uses GeoJSON `[longitude, latitude]`. CAP 1.2 uses `latitude,longitude`. Getting the conversion backward moves a San Francisco geofence into the Southern Ocean. `examples/invalid/92-swapped-coordinates.json` is the regression test.
 
 **Stopping instead of leaving.** The default `on_entry_behavior` is `EXIT_VIA_NEAREST_SAFE_EGRESS`, not "stop." A vehicle that halts where it stands when a geofence turns on is a vehicle abandoned in a fire lane, which is the exact behavior NHTSA cited in July 2026.
 
@@ -110,7 +110,7 @@ For anyone comfortable with it, this is the least work for everybody. Reviewers 
 only the **Read** role on the repository, which is enough to submit reviews and comment
 on specific lines of a pull request, and does not permit pushing, merging, or applying
 suggestions. Comments anchor to lines, thread, and resolve, and nothing has to be merged
-by hand afterwards.
+by hand afterward.
 
 ### What not to use
 
@@ -126,6 +126,6 @@ markdown loses fidelity every trip, and the exact regulatory quotations in
 
 Draft for review, September 2, 2026.
 
-The draft has been through one adversarial security and safety review, recorded in `SECURITY-REVIEW.md`. It found 6 critical and 12 high findings, all now closed, and the regression cases in `examples/invalid/` cover the ones a validator can catch. Several of the fixes changed normative behavior, most consequentially: `duration` is no longer permitted on a live notice, revisions must carry `original_effective_start` and are bound to their original issuer, acknowledgements are signed, and the rate-limit table in Section 10.3 now distinguishes thresholds that page a human from gates that actually stop a notice.
+The draft has been through one adversarial security and safety review, recorded in `SECURITY-REVIEW.md`. It found 6 critical and 12 high findings, all now closed, and the regression cases in `examples/invalid/` cover the ones a validator can catch. Several of the fixes changed normative behavior, most consequentially: `duration` is no longer permitted on a live notice, revisions must carry `original_effective_start` and are bound to their original issuer, acknowledgments are signed, and the rate-limit table in Section 10.3 now distinguishes thresholds that page a human from gates that actually stop a notice.
 
 Section 14 lists the open questions for v0.2, of which registry governance is the hardest.

@@ -47,7 +47,7 @@
   "zones": [
     {
       "zone_id": "z1",
-      "area_desc": "Resolved from a phone call: a 100 m radius circle centred on Valencia St at 19th St. Geometry synthesized, not drawn by the issuer.",
+      "area_desc": "Resolved from a phone call: a 100 m radius circle centered on Valencia St at 19th St. Geometry synthesized, not drawn by the issuer.",
       "geometry": {
         "type": "Point",
         "coordinates": [

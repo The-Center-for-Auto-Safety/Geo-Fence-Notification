@@ -113,7 +113,7 @@ This profile defines four assurance levels. A receiver MUST determine the level 
 3. The API endpoint, its credential provisioning process, and this profile's version, for agencies able to reach CA-2 or CA-3.
 4. The published-number roster process for P-3, so the agency knows which of its numbers the receiver will call back, and how to update it.
 5. The resolver identity and version, the default radii, and the 150 m maximum, so the agency knows what a bare address will produce.
-6. The acknowledgement format under section 10, and how the agency reads it.
+6. The acknowledgment format under section 10, and how the agency reads it.
 7. A named point of contact for rejections, per P-12.
 
 **P-17.** A manufacturer SHOULD provide the same packet to every agency in its operating area rather than waiting for each to ask. (F) sets a deadline, not a trigger, and an agency that has to ask first will ask during an incident.
@@ -124,15 +124,15 @@ This profile defines four assurance levels. A receiver MUST determine the level 
 
 This is the fastest available route to making the interface real: the plan is a filing that already exists, is already reviewed annually, and is already updated "based on first responder interactions." Nothing new has to be created for it to carry this content.
 
-## 10. Acknowledgement and record
+## 10. Acknowledgment and record
 
 Neither Article 3.7 nor Article 3.8 requires a manufacturer to log or report the geofencing messages it receives, and 228.24(a) reaches non-compliance only through the general catch-all at (a)(10). The department therefore has authority to act and no way to learn that it should. This section fills that gap voluntarily, and a manufacturer that adopts it is in a materially better position in any enforcement conversation than one that cannot produce a record.
 
-**P-19.** A receiver MUST send an acknowledgement per Section 9 for every geofencing message at any assurance level, to the channel the message arrived on where that channel supports it, and to the section 8 contact otherwise.
+**P-19.** A receiver MUST send an acknowledgment per Section 9 for every geofencing message at any assurance level, to the channel the message arrived on where that channel supports it, and to the section 8 contact otherwise.
 
-**P-20.** The acknowledgement MUST state the assurance level, the geometry actually applied, whether that geometry was resolved or issued, the level and window actually applied, and any ceiling that reduced the request under P-5 or P-7.
+**P-20.** The acknowledgment MUST state the assurance level, the geometry actually applied, whether that geometry was resolved or issued, the level and window actually applied, and any ceiling that reduced the request under P-5 or P-7.
 
-**P-21.** Section 9's hygiene rules apply without exception. `exceptions[].detail` MUST NOT carry rider, passenger, trip, or occupancy information. `ack_required` is meaningful only at `priority` 0 and 1, and per-vehicle location is optional above `priority` 1 and MUST NOT be retained past after-action review. A statutory compliance record is not a licence to build a fleet-tracking feed pointed at a public agency, and California's own record-retention exposure makes that worse rather than better.
+**P-21.** Section 9's hygiene rules apply without exception. `exceptions[].detail` MUST NOT carry rider, passenger, trip, or occupancy information. `ack_required` is meaningful only at `priority` 0 and 1, and per-vehicle location is optional above `priority` 1 and MUST NOT be retained past after-action review. A statutory compliance record is not a license to build a fleet-tracking feed pointed at a public agency, and California's own record-retention exposure makes that worse rather than better.
 
 **P-22.** Records MUST be retained per Section 12. A manufacturer SHOULD be able to produce, on request, every geofencing message received in a period, its assurance level, the action taken, and the elapsed time from receipt to fleet direction.
 
@@ -156,5 +156,5 @@ A manufacturer may claim conformance with this profile if all of the following h
 4. `LOCATION-RESOLUTION.md` is implemented with the 150 m California maximum, and ambiguous or unresolvable identifiers are rejected rather than guessed, with the rejection reaching a human at the agency.
 5. No resolved zone carries a prohibitive level without callback verification.
 6. The section 8 packet is available to every emergency response official in the operating area, not only on request.
-7. Acknowledgements per section 10 are sent and retained, with Section 9's hygiene rules enforced.
+7. Acknowledgments per section 10 are sent and retained, with Section 9's hygiene rules enforced.
 8. Section 8 of the specification outranks every rule in this profile, in the implementation and not only on paper.

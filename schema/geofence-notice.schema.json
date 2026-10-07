@@ -32,7 +32,7 @@
       "type": "integer",
       "minimum": 1,
       "maximum": 4096,
-      "description": "Increments by 1 per revision of notice_id. Replay protection. Capped so that a single forged high-sequence message cannot permanently lock the legitimate issuer out of correcting or cancelling its own notice."
+      "description": "Increments by 1 per revision of notice_id. Replay protection. Capped so that a single forged high-sequence message cannot permanently lock the legitimate issuer out of correcting or canceling its own notice."
     },
     "msg_type": {
       "enum": [

@@ -19,7 +19,7 @@ Companion to `GFN-0.1-specification.md`. The specification is the normative refe
   │    ISSUER     │ ─────────────────────────────► │     RECEIVER       │
   │ agency CAD or │                                │  AV operator's     │
   │ dispatch      │ ◄───────────────────────────── │  fleet backend     │
-  │ console       │        signed acknowledgement  └─────────┬──────────┘
+  │ console       │        signed acknowledgment  └─────────┬──────────┘
   └───────────────┘                                          │ routing constraint
                                                               ▼
                                                     ┌────────────────────┐
@@ -29,7 +29,7 @@ Companion to `GFN-0.1-specification.md`. The specification is the normative refe
 
 Four parties, three of which have to exist before any of this works. The registry is the one that does not exist yet, and everything about authenticity depends on it [§14].
 
-A **notice** travels issuer to receiver. An **acknowledgement** travels back. Nothing travels from the issuer to a vehicle directly, and nothing in this protocol reaches into a vehicle's controls [§1.2].
+A **notice** travels issuer to receiver. An **acknowledgment** travels back. Nothing travels from the issuer to a vehicle directly, and nothing in this protocol reaches into a vehicle's controls [§1.2].
 
 ---
 
@@ -126,7 +126,7 @@ Each step runs only if the one before it passed. The order is not stylistic: it 
 | 6 | `issued_at` not more than 300 s ahead, not older than local policy | `EXPIRED` | Clock skew and long-horizon replay |
 | 7 | `effective_end` is in the future | `EXPIRED` | The primary anti-replay control; needs no stored state |
 | 8 | `sequence` strictly greater than any seen for this `notice_id` | `STALE_SEQUENCE` | Ordering and short-horizon replay |
-| 9 | Revision authority: same `notice_id`, same issuer, `references` names itself at a lower sequence | `UNKNOWN_AUTHORITY` | Stops one credential cancelling another agency's notice |
+| 9 | Revision authority: same `notice_id`, same issuer, `references` names itself at a lower sequence | `UNKNOWN_AUTHORITY` | Stops one credential canceling another agency's notice |
 | 10 | Geometry: rings closed, non-self-intersecting, holes contained, 512-vertex cap | `MALFORMED_GEOMETRY` | All three make the area computation meaningless, so the tier check below would be meaningless too |
 | 11 | Jurisdiction containment | `OUTSIDE_JURISDICTION` | Bounds the blast radius of one compromised credential |
 | 12 | Tier ceilings: duration, cumulative duration, area, level | `DURATION_EXCEEDS_TIER`, `AREA_EXCEEDS_TIER`, `LEVEL_NOT_PERMITTED_FOR_TIER` | Depends on geometry being sane, hence after step 10 |
@@ -188,7 +188,7 @@ Two things stop it being the primary path today.
 
 **Deployment.** The FCC only finalized C-V2X rules for the 5.9 GHz band effective February 2025, allocating 30 MHz, with the transition deadline in December 2026. The FCC's own reasoning notes that DSRC "failed to take hold and achieve scale in the United States" across more than twenty years. You cannot build an emergency mechanism on roadside units that mostly are not installed.
 
-**A broadcast cannot be acknowledged.** An incident commander who broadcasts learns nothing: not how many automated vehicles are in the zone, not whether any of them moved, not which one is boxed in behind an engine. The signed acknowledgement is the entire feedback loop, and radio has no return path.
+**A broadcast cannot be acknowledged.** An incident commander who broadcasts learns nothing: not how many automated vehicles are in the zone, not whether any of them moved, not which one is boxed in behind an engine. The signed acknowledgment is the entire feedback loop, and radio has no return path.
 
 So broadcast is not rejected. It is a second channel that adds reach and subtracts accountability, and v0.1 treats it as a hint that a vehicle should confirm over its normal channel.
 
@@ -202,9 +202,9 @@ Seven reasons, roughly in order of how hard they are to design around.
 
 3. **Dispersed egress is only possible above the vehicle.** Section 8.3 of the specification requires that vehicles leaving a zone spread across available exits rather than each independently minimizing its own distance. A vehicle acting alone on a broadcast cannot do this: it has no idea what the others are doing, so it necessarily runs the nearest-point algorithm. A pure broadcast design converges a whole fleet on the same two perimeter arterials against a five-minute deadline, on the roads an evacuating public is using. Coordination requires a coordinator.
 
-4. **Somebody has to answer the question.** "How many of your vehicles are in my zone and when will they be out." A vehicle cannot answer for a fleet. The acknowledgement, the exception report for a boxed-in vehicle, and the 24/7 hotline all require one accountable party per operator.
+4. **Somebody has to answer the question.** "How many of your vehicles are in my zone and when will they be out." A vehicle cannot answer for a fleet. The acknowledgment, the exception report for a boxed-in vehicle, and the 24/7 hotline all require one accountable party per operator.
 
-5. **Direct addressing would require knowing where the vehicles are.** To send to specific vehicles, an issuer needs a live registry of vehicle positions. Section 9 already treats the acknowledgement as a surveillance channel to be bounded; a per-vehicle addressing scheme would be a far larger one, held by government, continuously.
+5. **Direct addressing would require knowing where the vehicles are.** To send to specific vehicles, an issuer needs a live registry of vehicle positions. Section 9 already treats the acknowledgment as a surveillance channel to be bounded; a per-vehicle addressing scheme would be a far larger one, held by government, continuously.
 
 6. **The backend holds context the notice does not.** Which trips are in progress, which rider needs an accessible drop-off, which vehicles are supervised and which are driverless, how much remote-operator capacity is staffed right now. Applying `occupant_policy` correctly is impossible without it.
 
@@ -223,7 +223,7 @@ A `PUBLIC` geofence notice is structurally the same object as a WZDx road event.
 So the honest position for v0.1: **the consumer-navigation binding is missing, it should exist, and it is the cheapest large win available.** Two caveats that shape it rather than block it.
 
 - **Only `PUBLIC` scope may go this way.** A live police perimeter published to every navigation app is a map of where the police are. The scope field already gates this correctly [§10.4].
-- **Advisory, not compliance.** A navigation app can route a human around a closure. It cannot make them comply, cannot acknowledge, and is not an accountable party. That is fine: it is a different job. Telling ten thousand drivers to avoid a block is worth doing even though none of them will send an acknowledgement.
+- **Advisory, not compliance.** A navigation app can route a human around a closure. It cannot make them comply, cannot acknowledge, and is not an accountable party. That is fine: it is a different job. Telling ten thousand drivers to avoid a block is worth doing even though none of them will send an acknowledgment.
 
 One honest note on the state of the art: the case study literature reports that the WZDx feed "is not widely used by automotive or navigation entities, yet." The pathway is real and the standard exists; adoption is uneven. Publishing into it is still the right move, because the alternative is a bespoke arrangement with each map provider, which is exactly the failure this whole specification exists to avoid.
 
@@ -251,7 +251,7 @@ There is also the orphan case: a retrofit or aftermarket automation system, or a
 
 ## 5. Acknowledging
 
-The acknowledgement goes back to the issuer, **signed with the operator's own key**:
+The acknowledgment goes back to the issuer, **signed with the operator's own key**:
 
 ```http
 POST /gfn/v0.1/notices/urn%3Agfn%3Aus-ca-sf-fire%3A2026-0912-0447/ack HTTP/1.1
@@ -288,7 +288,7 @@ Three rules that are easy to miss:
 
 - `disposition: ACCEPTED` means **no** exceptions. An acceptance carrying exceptions is schema-invalid, so non-compliant vehicles cannot hide in a field the issuer's dashboard reads as clean.
 - `exceptions[].detail` must carry no rider, trip, passenger or occupancy information. It flows from a commercial operator to a public agency and into a three-year retained record on both sides.
-- Acknowledgements are also a surveillance channel. `ack_required` is meaningful only at priority 0 and 1, per-vehicle location may be omitted above priority 1, and issuers must not retain it past the after-action review.
+- Acknowledgments are also a surveillance channel. `ack_required` is meaningful only at priority 0 and 1, per-vehicle location may be omitted above priority 1, and issuers must not retain it past the after-action review.
 
 **A rejection is not a refusal to cooperate.** It is a machine-readable "this message is wrong, here is why," and it must reach a human at both ends inside the latency budget. The issuer's response to a rejection is a phone call to the operator hotline, not a retry loop.
 
@@ -416,7 +416,7 @@ There is a second, sharper reason not to try. `reason.internal_text` sits inside
 
 ### 6.7 The three encoding mistakes
 
-1. **Coordinate order reverses.** GeoJSON is `[longitude, latitude]`. CAP `<polygon>` is `latitude,longitude`, space-delimited, ring closed. Getting it backwards moves a San Francisco geofence into the Southern Ocean. `examples/invalid/92-swapped-coordinates.json` is the regression test.
+1. **Coordinate order reverses.** GeoJSON is `[longitude, latitude]`. CAP `<polygon>` is `latitude,longitude`, space-delimited, ring closed. Getting it backward moves a San Francisco geofence into the Southern Ocean. `examples/invalid/92-swapped-coordinates.json` is the regression test.
 
    ```
    GeoJSON:  [-122.4221, 37.7615]
@@ -438,13 +438,13 @@ EAS and WEA reach millions of broadcast receivers and phones. Alert fatigue is a
 
 They are appropriate only when the notice is already a public emergency in its own right: an evacuation order, a wildfire perimeter, a tsunami zone, a shelter-in-place. In those cases the AV geofence is a footnote to an alert the public needs anyway.
 
-If you do route there: WEA's `CMAMtext` is capped at 90 English characters, which leaves no room for GFN detail, so the AV-specific instruction stays on the direct and IPAWS channels. And neither EAS nor WEA may be a notice's **only** channel: neither delivers to fleet systems reliably, and neither supports acknowledgement, so an issuer using them alone learns nothing about whether any vehicle moved [§11.4].
+If you do route there: WEA's `CMAMtext` is capped at 90 English characters, which leaves no room for GFN detail, so the AV-specific instruction stays on the direct and IPAWS channels. And neither EAS nor WEA may be a notice's **only** channel: neither delivers to fleet systems reliably, and neither supports acknowledgment, so an issuer using them alone learns nothing about whether any vehicle moved [§11.4].
 
 ### 6.9 Choosing a path
 
 | Situation | Path |
 |---|---|
-| Operator has a direct integration | `DIRECT_API`. Fastest, and the only one with real acknowledgement |
+| Operator has a direct integration | `DIRECT_API`. Fastest, and the only one with real acknowledgment |
 | Small agency, public-scope notice, no direct integration | IPAWS, `scope: PUBLIC` |
 | Restricted or private notice | `DIRECT_API` only. IPAWS cannot carry it to operators |
 | Notice with a lead time | `DIRECT_API`, or hold the IPAWS submission until `effective_start` |
@@ -534,7 +534,7 @@ A structure fire on Valencia Street, priority 0, from the reference example.
 - [ ] Never induce an unsafe maneuver, including a suppressed yield
 - [ ] Release at `effective_end` with no further instruction
 - [ ] Honor cached notices through connectivity loss; take time from the backend
-- [ ] Signed acknowledgements, and machine-readable rejections that reach a human
+- [ ] Signed acknowledgments, and machine-readable rejections that reach a human
 - [ ] Retain notices, verification results, clear times and diverted trips for three years
 
 `validate.py` in this repository covers the schema, the geometry rules, the tier ceilings and the free-text checks. It does **not** cover signature verification, revocation, jurisdiction containment or any cross-message state, all of which need a registry. Treat it as a partial reference, not a conformance suite.
@@ -631,8 +631,8 @@ The IPAWS facts in Section 7 come from FEMA and OASIS, not from inference:
 
 - `GFN-0.1-specification.md`: the normative specification
 - `schema/geofence-notice.schema.json`: notice schema, JSON Schema 2020-12
-- `schema/acknowledgement.schema.json`: acknowledgement schema
-- `examples/`: worked notices, an acknowledgement, and a CAP 1.2 rendering
+- `schema/acknowledgment.schema.json`: acknowledgment schema
+- `examples/`: worked notices, an acknowledgment, and a CAP 1.2 rendering
 - `examples/invalid/`: one rejection per failure mode, each a regression test
 - `demo/dispatcher-console.html`: the issuing side, working
 - `SECURITY-REVIEW.md`: why several of these rules exist

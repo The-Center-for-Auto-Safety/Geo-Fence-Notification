@@ -36,7 +36,7 @@
   "reason": {
     "code": "FIRE",
     "severity": "LOW",
-    "public_text": "Fire under control, apparatus released, roadway reopened. Restriction cancelled ahead of scheduled expiry."
+    "public_text": "Fire under control, apparatus released, roadway reopened. Restriction canceled ahead of scheduled expiry."
   },
   "restriction": {
     "level": "PROHIBITED",

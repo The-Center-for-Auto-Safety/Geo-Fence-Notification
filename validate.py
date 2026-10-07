@@ -29,9 +29,9 @@ ROOT = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else __file__).resolve()
 ROOT = ROOT if ROOT.is_dir() else ROOT.parent
 
 NOTICE_SCHEMA = json.loads((ROOT / "schema" / "geofence-notice.schema.json").read_text())
-ACK_SCHEMA = json.loads((ROOT / "schema" / "acknowledgement.schema.json").read_text())
+ACK_SCHEMA = json.loads((ROOT / "schema" / "acknowledgment.schema.json").read_text())
 
-# Section 5.3. Hours, square kilometres, permitted restriction levels.
+# Section 5.3. Hours, square kilometers, permitted restriction levels.
 WIDE_AREA_CODES = {
     "WILDFIRE", "FLOODING", "TSUNAMI", "SEVERE_WEATHER", "SNOW_ICE",
     "EARTHQUAKE", "LANDSLIDE", "HAZMAT", "EVACUATION",
@@ -121,7 +121,7 @@ PII_PATTERNS = [
     (re.compile(r"\b(?:apt|apartment|unit|suite|ste)\.?\s*#?\s*\w{1,6}\b", re.I), "unit-level address"),
 ]
 
-# Applied only to acknowledgement free text (Section 9), which flows from the
+# Applied only to acknowledgment free text (Section 9), which flows from the
 # operator to a public agency and is the one place rider data can leak.
 ACK_PII_PATTERNS = PII_PATTERNS + [
     (re.compile(r"\b(?:rider|passenger|occupant)s?\b", re.I), "rider or occupancy information"),

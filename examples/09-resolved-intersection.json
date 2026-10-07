@@ -47,7 +47,7 @@
   "zones": [
     {
       "zone_id": "z1",
-      "area_desc": "Resolved from the issuer's location identifier, not drawn by the issuer: a 100 m radius circle centred on Valencia St at 19th St. Source text: \"Valencia and 19th, keep them out\".",
+      "area_desc": "Resolved from the issuer's location identifier, not drawn by the issuer: a 100 m radius circle centered on Valencia St at 19th St. Source text: \"Valencia and 19th, keep them out\".",
       "geometry": {
         "type": "Point",
         "coordinates": [

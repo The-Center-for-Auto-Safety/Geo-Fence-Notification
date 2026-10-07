@@ -45,7 +45,7 @@ The obvious alternative is to broadcast to every vehicle in the area, and it is 
 
 1. **A broadcast cannot be coordinated, and egress must be.** Section 8.3 requires vehicles leaving a zone to spread across the available exits. A vehicle acting alone on a broadcast has no view of what the others are doing, so it can only minimize its own distance, which is precisely the convergence 8.3 forbids. A pure broadcast design puts a whole fleet on the same two perimeter arterials, against a five-minute deadline, on the roads an evacuating public is using. Coordination requires a coordinator.
 
-2. **A broadcast cannot be acknowledged.** An incident commander needs an answer to "how many of your vehicles are in my zone, and when will they be out." A vehicle cannot answer for a fleet, and radio has no return path. The signed acknowledgement in Section 9, the exception report for a vehicle boxed in behind an engine, and the 24/7 hotline all require one identifiable party per operator.
+2. **A broadcast cannot be acknowledged.** An incident commander needs an answer to "how many of your vehicles are in my zone, and when will they be out." A vehicle cannot answer for a fleet, and radio has no return path. The signed acknowledgment in Section 9, the exception report for a vehicle boxed in behind an engine, and the 24/7 hotline all require one identifiable party per operator.
 
 3. **Verification has to live somewhere patchable.** The receiver-side checks in Section 13 include certificate chains, revocation, jurisdictional containment and tier ceilings. Replicating that across a hundred thousand embedded endpoints means a hundred thousand copies of a security-critical verifier on hardware that updates slowly.
 
@@ -136,9 +136,9 @@ As written above this notice is **not** valid for delivery: a `status: ACTUAL` n
 2. **A revision revises its own notice.** `UPDATE`, `CANCEL`, and `EXTEND` MUST carry the same `notice_id` and the same `authority_id` as `sequence` 1, and every `references` entry MUST name that same `notice_id`. Without this, a Tier 4 event organizer with a legitimate credential can `CANCEL` a fire department's live `PROHIBITED` zone and reopen a fire ground.
 3. **Lifecycle messages are signed like any other.** `UPDATE`, `CANCEL`, and `EXTEND` MUST carry a valid signature regardless of `status`. Cancellation is the one operation that *removes* a safety restriction, so an unsigned or `TEST`-status `CANCEL` accepted on a lifecycle code path is a total compromise for the cost of one HTTP request.
 
-`sequence` is capped at 4096 for a specific reason. Monotonic-sequence replay protection has a failure mode: a single forged message at an enormous sequence number permanently locks the legitimate issuer out of correcting or cancelling its own notice, because every message it can produce is now lower and MUST be discarded. A low ceiling bounds that, and no genuine notice needs four thousand revisions. A registry-level override for the case where the ceiling is reached is left to v0.2.
+`sequence` is capped at 4096 for a specific reason. Monotonic-sequence replay protection has a failure mode: a single forged message at an enormous sequence number permanently locks the legitimate issuer out of correcting or canceling its own notice, because every message it can produce is now lower and MUST be discarded. A low ceiling bounds that, and no genuine notice needs four thousand revisions. A registry-level override for the case where the ceiling is reached is left to v0.2.
 
-`notice_id` + `sequence` is the primary key everywhere in this specification, including acknowledgements, audit logs, and CAP references.
+`notice_id` + `sequence` is the primary key everywhere in this specification, including acknowledgments, audit logs, and CAP references.
 
 ### 3.2 Distribution hints
 
@@ -201,7 +201,7 @@ Past the cumulative ceiling the issuer does not get another `EXTEND`. It issues 
         │ CANCEL                       │ CANCEL          UPDATE / EXTEND
         ▼                              ▼                  (sequence + 1,
    ┌───────────┐                 ┌───────────┐             stays ACTIVE)
-   │ CANCELLED │                 │ CANCELLED │
+   │ CANCELED  │                 │ CANCELED  │
    └───────────┘                 └───────────┘
 ```
 
@@ -264,7 +264,7 @@ Tier is derived from `agency_type` and, for Tier 1W, `reason.code`, plus the iss
 
 **Prohibitive levels.** `PROHIBITED` and `NO_DRIVERLESS` are both treated as prohibitive for every ceiling in this table. For a fleet that operates no supervised vehicles, which is the population this specification is written for, `NO_DRIVERLESS` is a total closure by another name. Without this rule a utility could impose over 5 km² for 72 hours what the fire department itself may impose over 2 km² for 4 hours, by picking the milder-sounding word. The same logic applies to `SPEED_LIMITED` at its floor, which is why 6.3 gives that level a floor.
 
-Tier 1W exists because incident-scale ceilings are wrong for hazards that are intrinsically wide and long-lived. A county EOC managing a bayou out of its banks needs a polygon measured in square kilometres and a window measured in days, and forcing it to re-issue every four hours produces exactly the failure mode the ceilings are meant to prevent: a tired duty officer setting an unnecessarily large area to avoid having to touch it again. The trade is that Tier 1W buys size and time at the cost of severity. A 500 km² restriction is `AVOID`, not `PROHIBITED`, unless the hazard is one where entry is plainly lethal.
+Tier 1W exists because incident-scale ceilings are wrong for hazards that are intrinsically wide and long-lived. A county EOC managing a bayou out of its banks needs a polygon measured in square kilometers and a window measured in days, and forcing it to re-issue every four hours produces exactly the failure mode the ceilings are meant to prevent: a tired duty officer setting an unnecessarily large area to avoid having to touch it again. The trade is that Tier 1W buys size and time at the cost of severity. A 500 km² restriction is `AVOID`, not `PROHIBITED`, unless the hazard is one where entry is plainly lethal.
 
 **Emergency escalation.** A Tier 3 or Tier 4 issuer facing a genuine life-safety condition does not get a bigger tier. It calls the Tier 1 agency, which issues. A gas utility crew standing over a ruptured main calls the fire department, and the fire department issues the `PROHIBITED` notice. This keeps the authority to close streets where the law already puts it, and keeps the audit trail intact.
 
@@ -336,7 +336,7 @@ The restriction is graduated. A blanket "no vehicles" is right for a burning bui
 | `restriction.egress_route` | GeoJSON `LineString` | Conditional | REQUIRED when `on_entry_behavior` is `EXIT_VIA_SPECIFIED_ROUTE`. Subject to every geometry rule in 7.2. |
 | `restriction.corridors` | array of object | MAY | Streets that remain open through the zone. Each has `name`, a REQUIRED `geometry` (`LineString`), and `direction` of `BOTH`, `INBOUND`, or `OUTBOUND`. Keeps an evacuation route or an emergency access lane usable inside a large restricted polygon. |
 
-`corridors[].geometry` is required rather than optional because a corridor without geometry is not actionable. A router cannot honor "N Clark St, kept open northbound." An issuer who writes only the name believes they have preserved emergency access, every conforming receiver closes it anyway, and nothing in the acknowledgement tells the issuer their intent was dropped. That divergence between what the incident commander thinks they issued and what the fleet does is the failure this specification exists to prevent, so a corridor either carries a line a router can follow or it is not a corridor.
+`corridors[].geometry` is required rather than optional because a corridor without geometry is not actionable. A router cannot honor "N Clark St, kept open northbound." An issuer who writes only the name believes they have preserved emergency access, every conforming receiver closes it anyway, and nothing in the acknowledgment tells the issuer their intent was dropped. That divergence between what the incident commander thinks they issued and what the fleet does is the failure this specification exists to prevent, so a corridor either carries a line a router can follow or it is not a corridor.
 
 ### 6.5 On-entry behavior
 
@@ -349,7 +349,7 @@ Applies to a vehicle already inside the zone when the notice takes effect, or on
 | `HOLD_AT_SAFE_LOCATION` | Proceed to the nearest legal parking or loading space that is outside the travel lane **and outside the zone**, and hold. Use only where movement itself is the hazard. MUST NOT be used with `PROHIBITED`: holding inside a prohibited zone parks a vehicle in the hazard, which is precisely the failure the default exists to prevent. |
 | `REMOTE_OPERATOR_REQUIRED` | Escalate to a human remote operator within 30 seconds. The vehicle continues to operate safely and lawfully in the meantime. Restricted to Tier 1 and 1W issuers, and see the capacity note below. |
 
-**`REMOTE_OPERATOR_REQUIRED` is an amplifier, and is bounded accordingly.** It converts one message into a per-vehicle demand on a scarce human resource. A permissive-looking notice over a busy downtown at rush hour, low tier, low severity, small area, mild level, can saturate an operator's remote assistance desk, and that desk is also the fallback path for genuine emergencies under 8.5. So: only Tier 1 and 1W may request it, a receiver MUST cap concurrent geofence-driven escalations at its own staffed capacity, and vehicles beyond the cap fall back to `EXIT_VIA_NEAREST_SAFE_EGRESS` with the shortfall reported as an acknowledgement exception.
+**`REMOTE_OPERATOR_REQUIRED` is an amplifier, and is bounded accordingly.** It converts one message into a per-vehicle demand on a scarce human resource. A permissive-looking notice over a busy downtown at rush hour, low tier, low severity, small area, mild level, can saturate an operator's remote assistance desk, and that desk is also the fallback path for genuine emergencies under 8.5. So: only Tier 1 and 1W may request it, a receiver MUST cap concurrent geofence-driven escalations at its own staffed capacity, and vehicles beyond the cap fall back to `EXIT_VIA_NEAREST_SAFE_EGRESS` with the shortfall reported as an acknowledgment exception.
 
 `EXIT_VIA_NEAREST_SAFE_EGRESS` is the default because the alternative failure is worse. A vehicle that stops where it is when a geofence turns on is a vehicle abandoned in a fire lane, which is the exact behavior NHTSA cited in July 2026. The notice's job is to get vehicles **out**, not to freeze them in place.
 
@@ -372,7 +372,7 @@ Applies to a vehicle already inside the zone when the notice takes effect, or on
 
 ### 7.2 Geometry rules
 
-- Coordinate order is `[longitude, latitude]`, per RFC 7946. **This is the reverse of CAP 1.2**, which uses `latitude,longitude`. Section 11.3 covers the conversion. Getting this backwards places a San Francisco geofence in Antarctica, and it is the most common integration defect in geospatial alerting.
+- Coordinate order is `[longitude, latitude]`, per RFC 7946. **This is the reverse of CAP 1.2**, which uses `latitude,longitude`. Section 11.3 covers the conversion. Getting this backward places a San Francisco geofence in Antarctica, and it is the most common integration defect in geospatial alerting.
 - Polygon rings MUST be closed: first and last position identical, minimum four positions.
 - Exterior rings SHOULD follow the right-hand rule (counterclockwise).
 - A polygon MUST NOT be self-intersecting.
@@ -416,7 +416,7 @@ A vehicle MUST NOT execute a maneuver to honor a notice that it would not execut
 
 Two specific cases, because a planner will not otherwise classify either as unsafe:
 
-- **Speed.** A vehicle MAY exceed `restriction.max_speed_kph` where travelling at that speed is itself unsafe for the road, most obviously where it would put the vehicle far below the speed of surrounding traffic. Moving slowly is not a maneuver a planner refuses, and it is a documented generator of rear-end and secondary collisions. The 10 km/h floor in 6.4 reduces how often this arises; this clause covers the rest.
+- **Speed.** A vehicle MAY exceed `restriction.max_speed_kph` where traveling at that speed is itself unsafe for the road, most obviously where it would put the vehicle far below the speed of surrounding traffic. Moving slowly is not a maneuver a planner refuses, and it is a documented generator of rear-end and secondary collisions. The 10 km/h floor in 6.4 reduces how often this arises; this clause covers the rest.
 - **Yielding.** No notice, at any level, suppresses a stop required by traffic control, right of way, or a pedestrian. `NO_STOP` restricts discretionary stopping only.
 
 ### 8.2 Required responses by level
@@ -479,7 +479,7 @@ The boundary is deliberate. Section 1.3 gives the argument; the four load-bearin
 - **No common vehicle-addressable channel exists.** A backend already reaches every vehicle it runs. Addressing vehicles directly from outside would mean building a national channel first.
 - **Verification must live somewhere patchable.** The receiver-side checks in Section 13 include certificate chains, revocation, containment and tier ceilings. One maintained verifier is a smaller attack surface than one per vehicle on slow-updating hardware.
 - **Dispersed egress (8.3) is impossible below the fleet.** A vehicle acting alone on a broadcast has no view of what the others are doing, so it necessarily minimizes its own distance, which is exactly the convergence 8.3 forbids. Coordination requires a coordinator.
-- **Accountability needs a party.** The acknowledgement, the exception report and the hotline all require one identifiable entity per operator. A vehicle cannot answer for a fleet.
+- **Accountability needs a party.** The acknowledgment, the exception report and the hotline all require one identifiable entity per operator. A vehicle cannot answer for a fleet.
 
 **"Operator" includes a manufacturer.** For a privately owned automated vehicle there is no fleet, and the receiver is the manufacturer's connected-vehicle backend. Read every requirement on an operator in this document as falling on whichever covered entity runs the backend for that vehicle. Four consequences are unresolved and carried into Section 14: an owner may disable connectivity; `occupant_policy` (8.3) is written for dispatched trips and has no private-ownership equivalent; a supervised private vehicle has a licensed human aboard who should arguably be told rather than silently rerouted, which 8.2 does not currently distinguish; and enforcement against individual owners does not scale, which is an argument for keeping the duty and the records with the manufacturer.
 
@@ -487,9 +487,9 @@ This boundary is about **accountability, not reach.** Broadcast delivery (11.5) 
 
 ---
 
-## 9. Acknowledgement
+## 9. Acknowledgment
 
-When `ack_required` is `true`, each receiving operator returns a **signed** acknowledgement to the issuer's endpoint. Acknowledgements are signed the same way notices are (10.1), with the operator's registered key, and an issuer MUST reject an unsigned or badly signed acknowledgement.
+When `ack_required` is `true`, each receiving operator returns a **signed** acknowledgment to the issuer's endpoint. Acknowledgments are signed the same way notices are (10.1), with the operator's registered key, and an issuer MUST reject an unsigned or badly signed acknowledgment.
 
 The reverse channel needs authentication as much as the forward one. A forged `ACCEPTED` with `vehicles_in_zone_at_receipt: 0` tells an incident commander the fire ground is clear of automated vehicles when it is not, which is a safety claim made to someone who will act on it. A forged `REJECTED` exploits this section's own requirement that rejections be surfaced to a human, and pulls an incident commander into phone calls during the first minutes of an incident.
 
@@ -517,9 +517,9 @@ The reverse channel needs authentication as much as the forward one. A forged `A
 
 `disposition: ACCEPTED` means no exceptions. An acceptance carrying exceptions is a rejection of the schema, so that non-compliant vehicles cannot be reported in a field an issuer's dashboard treats as clean.
 
-**Acknowledgement free text is subject to the same hygiene rules as 6.1, plus one more.** `exceptions[].detail` flows from a commercial operator to a public agency and into a three-year retained record on both sides. It MUST NOT carry rider, passenger, trip, or occupancy information: not the fact that a vehicle was occupied, not a destination, not a fare. "Boxed in by parked apparatus, vehicle empty, awaiting a tow" is the right level of detail. Anything about who was in the vehicle is not the agency's business and not the acknowledgement's job.
+**Acknowledgment free text is subject to the same hygiene rules as 6.1, plus one more.** `exceptions[].detail` flows from a commercial operator to a public agency and into a three-year retained record on both sides. It MUST NOT carry rider, passenger, trip, or occupancy information: not the fact that a vehicle was occupied, not a destination, not a fare. "Boxed in by parked apparatus, vehicle empty, awaiting a tow" is the right level of detail. Anything about who was in the vehicle is not the agency's business and not the acknowledgment's job.
 
-**Acknowledgements are also a surveillance channel, and are bounded accordingly.** `vehicles_in_zone_at_receipt` and per-vehicle `location` are operationally useful to an incident commander and, repeated hourly under a series of benign notices, amount to a persistent fleet-tracking feed obtained through a conformance-mandatory path. So: `ack_required` is meaningful only for `priority` 0 and 1; an operator MAY omit `vehicles_in_zone_at_receipt` and `exceptions[].location` for any notice above `priority` 1; and issuers MUST NOT retain per-vehicle location from acknowledgements beyond the incident's after-action review. Section 14 keeps the broader question of live status reporting open, but v0.1 ships the narrow version, so v0.1 states the limits.
+**Acknowledgments are also a surveillance channel, and are bounded accordingly.** `vehicles_in_zone_at_receipt` and per-vehicle `location` are operationally useful to an incident commander and, repeated hourly under a series of benign notices, amount to a persistent fleet-tracking feed obtained through a conformance-mandatory path. So: `ack_required` is meaningful only for `priority` 0 and 1; an operator MAY omit `vehicles_in_zone_at_receipt` and `exceptions[].location` for any notice above `priority` 1; and issuers MUST NOT retain per-vehicle location from acknowledgments beyond the incident's after-action review. Section 14 keeps the broader question of live status reporting open, but v0.1 ships the narrow version, so v0.1 states the limits.
 
 A rejection is not a refusal to cooperate. It is a machine-readable "this message is wrong, here is why," and it MUST be surfaced to a human at both ends within the latency budget in 8.4. An issuer whose notice is rejected calls the operator hotline; the restriction does not silently fail.
 
@@ -607,7 +607,7 @@ Receivers MUST treat every notice as untrusted input until the signature verifie
 
 ### 11.1 Direct HTTPS (normative, primary)
 
-The primary path. Fastest, most reliable, and the only one with true acknowledgement.
+The primary path. Fastest, most reliable, and the only one with true acknowledgment.
 
 | Operation | Method and path |
 |---|---|
@@ -701,7 +701,7 @@ When it is warranted:
 
 - WEA `CMAMtext` is limited to 90 English characters. There is no room for GFN detail. Format: `Evacuate <area> now. Roads closed to all vehicles. <agency>`. The AV-specific instruction is carried on the direct and IPAWS channels.
 - EAS audio and text are for people. Do not attempt to encode geometry.
-- Set `scope: PUBLIC` and use `channels: ["EAS"]` or `["WEA"]` only alongside `DIRECT_API` or `IPAWS`. EAS and WEA MUST NOT be a notice's only channel: neither delivers to fleet systems reliably, and neither supports acknowledgement.
+- Set `scope: PUBLIC` and use `channels: ["EAS"]` or `["WEA"]` only alongside `DIRECT_API` or `IPAWS`. EAS and WEA MUST NOT be a notice's only channel: neither delivers to fleet systems reliably, and neither supports acknowledgment.
 
 ### 11.5 C-V2X and broadcast (non-normative)
 
@@ -724,7 +724,7 @@ The USDOT **Work Zone Data Exchange** is the nearest existing shape: an agency p
 Two constraints shape this binding rather than block it:
 
 - **`PUBLIC` scope only.** A live police perimeter published to every navigation app is a map of where the police are. The scope rules in 10.4 already gate this correctly, and a gateway MUST NOT publish a `RESTRICTED` or `PRIVATE` notice to a consumer feed.
-- **Advisory, not compliance.** A navigation app can route a human around a closure. It cannot compel, cannot acknowledge, and is not an accountable party. That is a different job from the receiver path, and a worthwhile one: telling ten thousand drivers to avoid a block has value even though none of them will ever send an acknowledgement.
+- **Advisory, not compliance.** A navigation app can route a human around a closure. It cannot compel, cannot acknowledge, and is not an accountable party. That is a different job from the receiver path, and a worthwhile one: telling ten thousand drivers to avoid a block has value even though none of them will ever send an acknowledgment.
 
 The binding itself is not specified in v0.1. It is the cheapest large win available and is carried into Section 14.
 
@@ -732,17 +732,17 @@ The binding itself is not specified in v0.1. It is the cheapest large win availa
 
 ## 12. Audit and transparency
 
-Every notice, every acknowledgement, and every rejection is a record.
+Every notice, every acknowledgment, and every rejection is a record.
 
-**Issuers MUST retain**, for at least three years: the signed notice, the issuing user identity, the incident number, all acknowledgements and rejections received, and any manual-entry provenance.
+**Issuers MUST retain**, for at least three years: the signed notice, the issuing user identity, the incident number, all acknowledgments and rejections received, and any manual-entry provenance.
 
-**Operators MUST retain**, for at least three years: every notice received and its verification result, the time routing was updated, the list of vehicles inside the zone at receipt and when each cleared, every diverted or cancelled trip with the rider-facing outcome, and every exception reported.
+**Operators MUST retain**, for at least three years: every notice received and its verification result, the time routing was updated, the list of vehicles inside the zone at receipt and when each cleared, every diverted or canceled trip with the rider-facing outcome, and every exception reported.
 
 **Public register.** Fields published in the register are subject to 6.1: `area_desc` in particular is republished verbatim and MUST NOT carry a unit-level address. For recurring protective movements, a fixed 72-hour delay protects a one-off motorcade and does nothing for a weekly route, whose pattern the register makes permanently public. Publish those aggregated by month rather than per-notice.
 
 Issuers SHOULD publish a register of expired notices: `notice_id`, agency, reason code, restriction level, area, start, end, and area description. Publication MAY be delayed up to 72 h for the sensitive reason codes in 10.4, and MUST NOT be withheld indefinitely. Geofencing is a power to close public streets to a class of vehicle. A power exercised without a public record erodes quickly, and the register is cheap insurance against that.
 
-**Metrics operators SHOULD report quarterly**, per jurisdiction: notice count by tier and reason, median and 95th percentile acknowledgement and clear times, total restricted area-hours, trips diverted, riders offered onward transport, and rejected notices by code.
+**Metrics operators SHOULD report quarterly**, per jurisdiction: notice count by tier and reason, median and 95th percentile acknowledgment and clear times, total restricted area-hours, trips diverted, riders offered onward transport, and rejected notices by code.
 
 ---
 
@@ -768,7 +768,7 @@ An implementation claiming **GFN v0.1 Receiver** conformance MUST:
 5. Never allow a notice to induce an unsafe maneuver, including a speed far below surrounding traffic or a suppressed yield (8.1).
 6. Release restrictions at `effective_end` without further instruction.
 7. Honor cached notices through connectivity loss, and take time authority from the fleet backend rather than an unverified local clock (8.5).
-8. Return signed acknowledgements and machine-readable rejections (Section 9).
+8. Return signed acknowledgments and machine-readable rejections (Section 9).
 9. Enforce the hard gates in 10.3 with a named human, not an automatic approval on timeout.
 10. Retain records per Section 12.
 
