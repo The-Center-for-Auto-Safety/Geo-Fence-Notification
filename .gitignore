@@ -13,3 +13,4 @@ brief/thumbnails*.jpg
 # Local scratch
 *.bak
 .fuse_hidden*
+brief/
